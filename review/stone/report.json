@@ -1,0 +1,47 @@
+{
+ "stage": "stone",
+ "objects": 121,
+ "triangles": 143322,
+ "views": {
+  "front": {
+   "iou": 0.868
+  },
+  "side": {
+   "iou": 0.848
+  },
+  "back": {
+   "iou": 0.85
+  }
+ },
+ "triangles_by_group": {
+  "back_mechanism": {
+   "now": 136,
+   "budget": 16000
+  },
+  "case_and_clock": {
+   "now": 27238,
+   "budget": 28000
+  },
+  "gears_and_weights": {
+   "now": 596,
+   "budget": 20000
+  },
+  "hourglass": {
+   "now": 10716,
+   "budget": 11000
+  },
+  "rock_body_limbs": {
+   "now": 37698,
+   "budget": 55000
+  },
+  "stone_plates": {
+   "now": 66938,
+   "budget": 70000
+  }
+ },
+ "size_m": {
+  "width_x": 3.774,
+  "depth_y": 1.604,
+  "height_z": 3.54
+ }
+}

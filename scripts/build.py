@@ -15,7 +15,7 @@ import bpy  # noqa: E402
 import yaml  # noqa: E402
 from PIL import Image  # noqa: E402
 
-from golem import blockout, case, compare, geo, materials, textures, views  # noqa: E402
+from golem import blockout, case, compare, geo, materials, stone, textures, views  # noqa: E402
 from golem.views import R  # noqa: E402
 
 VIEWS = ("front", "side", "back")
@@ -28,9 +28,16 @@ GROUPS = {
     "back_mechanism": ("back_",),
 }
 # Each stage replaces some blockout volumes with detailed parts.
-STAGES = {"blockout": [], "case": [case]}
+STAGES = {
+    "blockout": [],
+    "case": [case.build],
+    "stone": [case.build, lambda mats, seed: stone.build(mats, seed)],
+}
 # Close-up crops (sheet pixels) rendered for each stage, compared with the sheet.
-DETAILS = {"case": [("front", (200, 40, 460, 400), "case_front"), ("side", (650, 40, 800, 400), "case_side")]}
+DETAILS = {
+    "case": [("front", (200, 40, 460, 400), "case_front"), ("side", (650, 40, 800, 400), "case_side")],
+    "stone": [("front", (60, 40, 600, 340), "stone_front"), ("back", (960, 40, 1500, 340), "stone_back")],
+}
 
 
 def main():
@@ -38,6 +45,7 @@ def main():
     ap.add_argument("--stage", default="blockout", choices=list(STAGES))
     ap.add_argument("--out", default="out")
     ap.add_argument("--review", default="review", help="folder for the committed review images")
+    ap.add_argument("--seed", type=int, default=None, help="stone/rock seed (default: spec stone_seed)")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     review = os.path.join(args.review, args.stage)
@@ -50,8 +58,12 @@ def main():
     tex = {"clock_face": textures.clock_face(os.path.join(tex_dir, "clock_face.png"), 1024, spec["palette"])}
     mats = materials.make_materials(spec["palette"], tex)
     blockout.build(mats)
-    for module in STAGES[args.stage]:
-        module.build(mats)
+    seed = args.seed if args.seed is not None else spec.get("stone_seed", 1)
+    for step in STAGES[args.stage]:
+        if step.__code__.co_argcount == 2:
+            step(mats, seed)
+        else:
+            step(mats)
 
     meshes = [o for o in bpy.context.scene.objects if o.type == "MESH"]
     report = {"stage": args.stage, "objects": len(meshes), "triangles": geo.triangle_count(meshes), "views": {}}
@@ -93,7 +105,7 @@ def main():
         compare.side_by_side([refd, mine], os.path.join(review, f"detail_{name}.png"), height=900)
 
     views.render_three_quarter(os.path.join(review, "three_quarter.png"))
-    if args.stage == "case":
+    if args.stage in ("case", "stone"):
         views.render_three_quarter(os.path.join(review, "three_quarter_case.png"), yaw_deg=-30, size=(900, 1100),
                                    target_z=2.2, target=(0.0, -0.6), dist=6.0)
 
