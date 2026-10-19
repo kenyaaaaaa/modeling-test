@@ -4,3 +4,5 @@ __pycache__/
 *.blend1
 godot/golem/*.glb
 godot/golem/*.png
+godot/.godot/
+godot/**/*.import

@@ -59,7 +59,7 @@ def _disc_uv(name, center, radius, material, segments=64):
     ring = [bm.verts.new((cx + radius * math.cos(a), cy, cz + radius * math.sin(a)))
             for a in (2 * math.pi * i / segments for i in range(segments))]
     for i in range(segments):
-        f = bm.faces.new((c, ring[(i + 1) % segments], ring[i]))
+        f = bm.faces.new((c, ring[i], ring[(i + 1) % segments]))   # normal -Y (towards the viewer)
         for loop in f.loops:
             x, z = loop.vert.co.x - cx, loop.vert.co.z - cz
             loop[uv].uv = (0.5 + x / (2 * radius), 0.5 + z / (2 * radius))

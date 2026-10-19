@@ -90,7 +90,7 @@ def weights_for(name, co):
     return {"chest": 1.0}
 
 
-def ink_colours(ob, strength=0.85):
+def ink_colours(ob, strength=0.6):
     """Vertex colour: dark on the Freestyle-marked crack/border edges."""
     me = ob.data
     n = len(me.vertices)
@@ -125,6 +125,8 @@ def join_skinned(objects, name="golem"):
                 groups[bone] = g
                 g.add([v.index], w, "REPLACE")
         ink_colours(ob)
+        if "UVMap" not in ob.data.uv_layers:   # join keeps a UV map only if every part has one
+            ob.data.uv_layers.new(name="UVMap")
     active = objects[0]
     with bpy.context.temp_override(active_object=active, object=active, selected_objects=objects,
                                    selected_editable_objects=objects):

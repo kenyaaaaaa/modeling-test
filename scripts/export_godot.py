@@ -38,6 +38,9 @@ def main():
     names = sorted(o.name for o in meshes)
     tris = geo.triangle_count(meshes)
     body = rig.join_skinned(meshes)
+    body.data.validate(verbose=False, clean_customdata=False)  # duplicate edges from capped tubes
+    for m in body.data.materials:
+        m.use_backface_culling = True   # closed shells: no double-sided surfaces in Godot
     arm = rig.armature()
     rig.bind(body, arm)
     rig.idle(arm)
