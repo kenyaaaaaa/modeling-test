@@ -100,11 +100,12 @@ def axis_matrix(origin, axis):
 
 def mirror_x(ob, name):
     """Copy an object mirrored across X=0 (for .L -> .R parts)."""
+    bpy.context.view_layer.update()  # matrix_world of freshly placed objects
     me = ob.data.copy()
     me.name = name
     bm = bmesh.new()
     bm.from_mesh(me)
-    bm.transform(Matrix.Diagonal((-1, 1, 1, 1)))
+    bm.transform(Matrix.Diagonal((-1, 1, 1, 1)) @ ob.matrix_world)
     bmesh.ops.reverse_faces(bm, faces=bm.faces)
     bm.to_mesh(me)
     bm.free()
@@ -124,3 +125,119 @@ def triangle_count(objects):
         n += sum(len(p.vertices) - 2 for p in me.polygons)
         ob.evaluated_get(dg).to_mesh_clear()
     return n
+
+
+def square_lathe(name, profile, center=(0.0, 0.0), aspect=(1.0, 1.0), material=None):
+    """Stack of square rings: profile is (half_width, z) bottom to top.
+
+    Used for mouldings, plinths and capitals.  `aspect` stretches X/Y.
+    """
+    s2 = math.sqrt(2.0)
+    m = (Matrix.Translation((center[0], center[1], 0.0))
+         @ Matrix.Diagonal((aspect[0], aspect[1], 1.0, 1.0))
+         @ Matrix.Rotation(math.pi / 4, 4, "Z"))
+    prof = [(hw * s2, z) for hw, z in profile]
+    return lathe(name, prof, 4, material, matrix=m)
+
+
+def _bridge_loops(bm, loops, closed, cap):
+    n = len(loops[0])
+    for lo, hi in zip(loops, loops[1:] + ([loops[0]] if closed else [])):
+        for i in range(n):
+            j = (i + 1) % n
+            bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    if cap and not closed:
+        bm.faces.new(list(reversed(loops[0])))
+        bm.faces.new(loops[-1])
+
+
+def prism(name, poly, z0, z1, center=(0.0, 0.0, 0.0), material=None):
+    """Extrude a closed 2D polygon (XY) from z0 to z1."""
+    bm = bmesh.new()
+    cx, cy, cz = center
+    loops = [[bm.verts.new((cx + x, cy + y, cz + z)) for x, y in poly] for z in (z0, z1)]
+    _bridge_loops(bm, loops, False, True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def extrude_xz(name, poly, y0, y1, material=None):
+    """Front-view shape: closed polygon of (x, z) extruded along Y."""
+    bm = bmesh.new()
+    loops = [[bm.verts.new((x, y, z)) for x, z in poly] for y in (y0, y1)]
+    _bridge_loops(bm, loops, False, True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def sweep_xz(name, path, width, depth, y_center, material=None, closed=True):
+    """Band of rectangular section following a path of (x, z) points.
+
+    The band is `width` wide in the XZ plane (outwards from the path) and
+    `depth` deep along Y.  Used for frames that hug an outline.
+    """
+    bm = bmesh.new()
+    n = len(path)
+    loops = []
+    for i, (x, z) in enumerate(path):
+        p0 = Vector(path[(i - 1) % n] if closed or i > 0 else path[i])
+        p1 = Vector(path[(i + 1) % n] if closed or i < n - 1 else path[i])
+        t = (p1 - p0).normalized()
+        nrm = Vector((t.y, -t.x))  # outward for a counter-clockwise path
+        a = Vector((x, z)) - nrm * width / 2
+        b = Vector((x, z)) + nrm * width / 2
+        y0, y1 = y_center - depth / 2, y_center + depth / 2
+        loops.append([bm.verts.new((a.x, y0, a.y)), bm.verts.new((b.x, y0, b.y)),
+                      bm.verts.new((b.x, y1, b.y)), bm.verts.new((a.x, y1, a.y))])
+    # bridge consecutive rectangles
+    for k in range(n if closed else n - 1):
+        lo, hi = loops[k], loops[(k + 1) % n]
+        for i in range(4):
+            j = (i + 1) % 4
+            bm.faces.new((lo[i], lo[j], hi[j], hi[i]))
+    if not closed:
+        bm.faces.new(list(reversed(loops[0])))
+        bm.faces.new(loops[-1])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def torus(name, origin, axis, radius, minor, material=None, segments=32, minor_segments=8):
+    prof = [(radius + minor * math.cos(a), minor * math.sin(a))
+            for a in (2 * math.pi * i / minor_segments for i in range(minor_segments))]
+    bm = bmesh.new()
+    rings = []
+    for r, z in prof:
+        rings.append([bm.verts.new((r * math.cos(2 * math.pi * i / segments),
+                                    r * math.sin(2 * math.pi * i / segments), z)) for i in range(segments)])
+    _bridge_loops(bm, rings, True, False)
+    bm.transform(axis_matrix(origin, axis))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def bevel_edges(ob, offset, segments=1, angle_deg=30):
+    """Bevel the sharp edges of a mesh (catches highlights in toon shading)."""
+    bm = bmesh.new()
+    bm.from_mesh(ob.data)
+    edges = [e for e in bm.edges if e.calc_face_angle(0) > math.radians(angle_deg)]
+    bmesh.ops.bevel(bm, geom=edges, offset=offset, segments=segments, affect="EDGES", clamp_overlap=True)
+    bm.to_mesh(ob.data)
+    bm.free()
+    return ob
+
+
+def shade(ob, angle_deg=35):
+    """Smooth shading with sharp edges above the angle."""
+    me = ob.data
+    for p in me.polygons:
+        p.use_smooth = True
+    me.set_sharp_from_angle(angle=math.radians(angle_deg))
+    return ob
+
+
+def remove(names):
+    for n in names:
+        ob = bpy.data.objects.get(n)
+        if ob is not None:
+            bpy.data.objects.remove(ob, do_unlink=True)

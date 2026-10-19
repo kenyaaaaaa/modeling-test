@@ -9,11 +9,11 @@ depth: 1.57          # side view
 # Triangle budget for the final game mesh (Godot), 10k-30k allowed.
 budget:
   total: 25000
-  case_and_clock: 9000
+  case_and_clock: 8000
   stone_plates: 6000
   rock_body_limbs: 5500
   gears_and_weights: 2500
-  hourglass: 1500
+  hourglass: 2500     # glass, frame, sand; moved 1000 from the case (2026-10-19)
   back_mechanism: 500
 
 # Palette sampled with k-means from the front view.

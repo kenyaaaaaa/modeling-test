@@ -68,11 +68,44 @@ def render_preview(view, path, scale=2):
     sc.render.engine = "BLENDER_WORKBENCH"
     sh = sc.display.shading
     sh.light = "STUDIO"
-    sh.color_type = "MATERIAL"
+    sh.color_type = "TEXTURE"
     sh.show_object_outline = True
     sh.object_outline_color = (0.07, 0.05, 0.05)
     sh.show_cavity = True
     sh.cavity_type = "WORLD"
+    sc.render.film_transparent = False
+    sc.world = sc.world or bpy.data.worlds.new("World")
+    sc.world.color = (1, 1, 1)
+    sc.render.image_settings.color_mode = "RGB"
+    _render(path)
+
+
+def render_three_quarter(path, yaw_deg=-35, size=(900, 1000), target_z=1.75, dist=11.0, lens=50,
+                         target=(0.0, 0.0), ortho_scale=None):
+    """Perspective view from the front-left (character's right) for a 3D impression."""
+    from mathutils import Vector
+    sc = bpy.context.scene
+    cam = bpy.data.objects.get("ThreeQuarterCam")
+    if cam is None:
+        cam = bpy.data.objects.new("ThreeQuarterCam", bpy.data.cameras.new("ThreeQuarterCam"))
+        sc.collection.objects.link(cam)
+    a = math.radians(yaw_deg)
+    t = Vector((target[0], target[1], target_z))
+    cam.location = t + Vector((math.sin(a) * dist, -math.cos(a) * dist, dist * 0.18))
+    cam.rotation_euler = (t - cam.location).to_track_quat("-Z", "Y").to_euler()
+    cam.data.type = "ORTHO" if ortho_scale else "PERSP"
+    if ortho_scale:
+        cam.data.ortho_scale = ortho_scale
+    cam.data.lens = lens
+    sc.camera = cam
+    sc.render.resolution_x, sc.render.resolution_y = size
+    sc.render.resolution_percentage = 100
+    sc.render.engine = "BLENDER_WORKBENCH"
+    sh = sc.display.shading
+    sh.light = "STUDIO"
+    sh.color_type = "TEXTURE"
+    sh.show_object_outline = True
+    sh.show_cavity = True
     sc.render.film_transparent = False
     sc.world = sc.world or bpy.data.worlds.new("World")
     sc.world.color = (1, 1, 1)
