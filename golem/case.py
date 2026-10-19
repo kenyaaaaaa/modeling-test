@@ -21,15 +21,15 @@ REPLACES = [
 CASE_Y = -0.60      # front frame centre depth
 GLASS_Y = -0.55     # hourglass axis depth
 PX = 0.54           # pillar centre x
-SEG = 40            # segments of large round parts
-SEG_S = 20          # segments of small round parts
+SEG = 48            # segments of large round parts
+SEG_S = 24          # segments of small round parts
 
 # Hourglass glass profile (radius, z), bottom to top; smoothed below.
 GLASS_KEYS = [(0.0, 1.24), (0.17, 1.245), (0.25, 1.27), (0.30, 1.32), (0.325, 1.40), (0.33, 1.50),
               (0.32, 1.60), (0.29, 1.68), (0.22, 1.76), (0.12, 1.83), (0.05, 1.87), (0.03, 1.89),
               (0.05, 1.91), (0.12, 1.95), (0.22, 2.02), (0.29, 2.10), (0.32, 2.18), (0.33, 2.28),
               (0.325, 2.38), (0.30, 2.46), (0.25, 2.51), (0.17, 2.535), (0.0, 2.54)]
-GLASS = geo.catmull_rom(GLASS_KEYS, 2)
+GLASS = geo.catmull_rom(GLASS_KEYS, 3)
 
 CLOCK_Z = 3.04
 CLOCK_FACE_Y = -0.60
@@ -95,7 +95,7 @@ def _medallion(name, center, r, br, dark):
     return parts
 
 
-def _fluted_shaft(name, z0, z1, hw, hd, material, flutes=3, depth=0.011, groove_pts=5):
+def _fluted_shaft(name, z0, z1, hw, hd, material, flutes=3, depth=0.011, groove_pts=5, center=(PX, CASE_Y)):
     """Square pilaster with rounded grooves on each face, slightly tapered."""
     pts = []
     corners = [(hw, -hd), (hw, hd), (-hw, hd), (-hw, -hd)]
@@ -112,7 +112,7 @@ def _fluted_shaft(name, z0, z1, hw, hd, material, flutes=3, depth=0.011, groove_
                 t = t0 + (t1 - t0) * g / groove_pts
                 d = depth * math.sin(math.pi * g / groove_pts)
                 pts.append((ax + ex * t - nx * d, ay + ey * t - ny * d))
-    return geo.prism(name, pts, z0, z1, (PX, CASE_Y, 0), material, top_scale=0.96)
+    return geo.prism(name, pts, z0, z1, (center[0], center[1], 0), material, top_scale=0.96)
 
 
 def _arch_curve(x0, base, rise, n=24):
@@ -227,7 +227,7 @@ def build(mats):
     inner = [(r, z) for r, z in GLASS if 0 < r][1:-1]
     outline = [(_r_at(z) + 0.034, z) for _, z in inner]
     path = [(r, z) for r, z in outline] + [(-r, z) for r, z in reversed(outline)]
-    centre.append(geo.sweep_section_xz("hourglass_frame", path, geo.ellipse_section(0.03, 0.04, 10), GLASS_Y,
+    centre.append(geo.sweep_section_xz("hourglass_frame", path, geo.ellipse_section(0.03, 0.04, 14), GLASS_Y,
                                        br, closed=True))
     thin = [(_r_at(z) + 0.004, z) for _, z in inner]
     thin = thin[::2]
@@ -290,6 +290,8 @@ def build(mats):
     edge = geo.sweep_section_xz("clock_crest_bead", list(reversed(crest)), geo.ellipse_section(0.016, 0.016, 10), -0.565)
     edge.data.materials.append(br)
     centre.append(edge)
+    dome = geo.ellipsoid("clock_dome", (0, -0.22, 3.18), (0.3, 0.24, 0.17), br, SEG, 16)
+    centre.append(dome)
     finial_top = geo.catmull_rom([(0.075, 3.30), (0.06, 3.325), (0.04, 3.345), (0.035, 3.355), (0.058, 3.37),
                                   (0.062, 3.385), (0.05, 3.40), (0.03, 3.41), (0.036, 3.43), (0.02, 3.45),
                                   (0.01, 3.475), (0.0, 3.50)], 2)

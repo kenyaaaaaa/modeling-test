@@ -326,3 +326,70 @@ def displace(ob, fn):
         v.co = fn(v.co.copy())
     ob.data.update()
     return ob
+
+
+def tube(name, points, radii, material=None, segments=10, cap=True):
+    """Tube along a 3D polyline; radii per point (tapers, claws, roots)."""
+    pts = [Vector(p) for p in points]
+    bm = bmesh.new()
+    loops = []
+    prev_n = None
+    for i, p in enumerate(pts):
+        t = (pts[min(i + 1, len(pts) - 1)] - pts[max(i - 1, 0)]).normalized()
+        if prev_n is None:
+            ref = Vector((0, 0, 1)) if abs(t.z) < 0.9 else Vector((1, 0, 0))
+            n = t.cross(ref).normalized()
+        else:
+            n = (prev_n - t * prev_n.dot(t)).normalized()  # parallel transport
+        prev_n = n
+        b = t.cross(n)
+        r = radii[i]
+        loops.append([bm.verts.new(p + (n * math.cos(a) + b * math.sin(a)) * r)
+                      for a in (2 * math.pi * k / segments for k in range(segments))])
+    _bridge_loops(bm, loops, False, False)
+    if cap:
+        tip = radii[-1] < 1e-4
+        bm.faces.new(list(reversed(loops[0])))
+        if not tip:
+            bm.faces.new(loops[-1])
+    bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=1e-5)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def gear(name, origin, axis, radius, teeth, depth, material=None, tooth=0.25, hole=0.0, spin=0.0):
+    """Cog wheel: toothed outline extruded along its axis (local Z)."""
+    pts = []
+    for i in range(teeth):
+        a0 = 2 * math.pi * i / teeth + spin
+        step = 2 * math.pi / teeth
+        r_out = radius * (1 + tooth * 0.5)
+        r_in = radius * (1 - tooth * 0.3)
+        for f, r in ((0.0, r_in), (0.18, r_out), (0.5, r_out), (0.68, r_in)):
+            a = a0 + step * f
+            pts.append((r * math.cos(a), r * math.sin(a)))
+    bm = bmesh.new()
+    loops = [[bm.verts.new((x, y, z)) for x, y in pts] for z in (-depth / 2, depth / 2)]
+    _bridge_loops(bm, loops, False, True)
+    bm.transform(axis_matrix(origin, axis))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def spiral(center, r0, r1, turns, a0=0.0, n=40, flip=1):
+    """Points (x, z) of an outward spiral (scrollwork)."""
+    pts = []
+    for i in range(n + 1):
+        t = i / n
+        a = a0 + flip * 2 * math.pi * turns * t
+        r = r0 + (r1 - r0) * t
+        pts.append((center[0] + r * math.cos(a), center[1] + r * math.sin(a)))
+    return pts
+
+
+def scroll_xz(name, pts, y, radius, material=None, segments=8, taper=0.5):
+    """Brass scroll: a tube along (x, z) points at depth y, thinner at the curl."""
+    n = len(pts)
+    p3 = [(x, y, z) for x, z in pts]
+    radii = [radius * (taper + (1 - taper) * (i / (n - 1))) for i in range(n)]
+    return tube(name, p3, radii, material, segments)

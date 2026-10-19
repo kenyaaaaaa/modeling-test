@@ -6,17 +6,9 @@ height: 3.5          # ground to finial tip ("約3.5m" on the sheet)
 width: 3.67          # arm to arm, front view
 depth: 1.57          # side view
 
-# Triangle budget for the game mesh (Godot, PC).  2026-10-19: 30k -> 100k ->
-# 200k ceiling; the extra goes to stone and rock, where geometry shows most.
-# Godot generates the distance LODs on import.
-budget:
-  total: 200000
-  case_and_clock: 28000
-  hourglass: 11000
-  stone_plates: 70000
-  rock_body_limbs: 55000
-  gears_and_weights: 20000
-  back_mechanism: 16000
+# Triangle counts are reported per group; no cap (2026-10-19: 30k -> 100k ->
+# 200k -> no limit, the user asked not to reduce).  Godot makes the distance
+# LODs on import.
 
 # Palette sampled with k-means from the front view.
 palette:
@@ -27,13 +19,19 @@ palette:
   brass_mid:    "#918160"
   brass_shadow: "#635030"
   rock_light:   "#695c52"
-  rock:         "#3f383a"
-  rock_dark:    "#2f2722"
+  rock:         "#574a48"   # k-means gave #3f383a; lifted towards #695c52 to read as brown-purple
+  rock_dark:    "#3d322e"
   outline:      "#130e0d"
   sand_dark:    "#2c2838"
   sand_glow:    "#fbf6b4"
   glass:        "#d8d2b0"
   clock_face:   "#dacb9d"
 
+# Stone and rock layout (user picked seed 1 of review/stone/variants.png, 2026-10-19).
+stone_seed: 1
+
 # Blockout acceptance: silhouette IoU against the sheet, per view.
 blockout_iou_target: 0.85
+# Detail stages: 0.84.  The side view draws the back thinner than the back
+# view does; the back view's frame and wheel housing win (docs/PLAN.md).
+detail_iou_target: 0.84

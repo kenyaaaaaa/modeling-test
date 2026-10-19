@@ -10,7 +10,7 @@ def hex_to_linear(h):
 
 # material name -> palette key
 COLOURS = {
-    "stone": "stone", "brass": "brass", "brass_dark": "brass_shadow", "rock": "rock", "rock_dark": "rock_dark",
+    "stone": "stone", "brass": "brass", "brass_dark": "brass_shadow", "rock": "rock", "rock_dark": "rock_dark", "rock_light": "rock_light",
     "sand_dark": "sand_dark", "sand_glow": "sand_glow", "glass": "glass", "clock_face": "clock_face", "ink": "outline",
 }
 

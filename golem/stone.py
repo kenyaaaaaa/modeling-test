@@ -202,14 +202,15 @@ def _shape_plate(pb, rng, thickness, flatten, bevel, centers=None):
     # soften the top rim
     rim = [e for e in pb.edges if e.calc_face_angle(0) > math.radians(50)]
     if rim:
-        bmesh.ops.bevel(pb, geom=rim, offset=bevel, segments=2, affect="EDGES", clamp_overlap=True)
+        bmesh.ops.bevel(pb, geom=rim, offset=bevel, segments=3 if bevel >= 0.03 else 2, affect="EDGES",
+                        clamp_overlap=True)
     # chipped surface
     s = rng.uniform(0, 100)
     for v in pb.verts:
         v.co += normal * 0.006 * noise.noise(v.co * 9 + Vector((s, s, s)))
 
 
-def rock_core(name, volumes, material, seed, inset=0.085, cobble=0.13, height=0.055, voxel=0.022):
+def rock_core(name, volumes, material, seed, inset=0.085, cobble=0.13, height=0.055, voxel=0.022, ratio=1.0):
     """Dark rock under the plates: a coarser carrier covered in rounded cobbles."""
     ob = carrier(name, volumes, voxel=voxel, smooth=4)
     ob.data.materials.append(material)
@@ -229,10 +230,12 @@ def rock_core(name, volumes, material, seed, inset=0.085, cobble=0.13, height=0.
         v.co += v.normal * h
     bm.to_mesh(ob.data)
     bm.free()
-    return decimate(ob, 0.4)
+    return decimate(ob, ratio)
 
 
 def decimate(ob, ratio):
+    if ratio >= 1.0:
+        return ob
     dec = ob.modifiers.new("dec", "DECIMATE")
     dec.ratio = ratio
     dg = bpy.context.evaluated_depsgraph_get()
@@ -260,25 +263,41 @@ def _shrunk(volumes, d):
 def build(mats, seed=1):
     geo.remove(REPLACES)
     st, rk = mats["stone"], mats["rock"]
-    car = carrier("shoulder_carrier", SHOULDER_VOLUMES)
+    car = carrier("shoulder_carrier", _shrunk(SHOULDER_VOLUMES, 0.035))
     # no plates where the clock case sits in front
     def keep(c):
-        return not (abs(c.x) < 0.55 and c.y < -0.25 and c.z < 3.2)
+        front_case = abs(c.x) < 0.55 and c.y < -0.25 and c.z < 3.2
+        back_wheel = abs(c.x) < 0.5 and c.y > 0.25 and 2.22 < c.z < 3.14
+        return not (front_case or back_wheel)
     sh, _, _ = plates("shoulder_plates", car, st, seed, keep=keep, centers=[v[0] for v in SHOULDER_VOLUMES])
-    decimate(sh, 0.35)
-    core = rock_core("rock_shoulders", SHOULDER_VOLUMES, rk, seed)
+    # no polygon cap (2026-10-19): plates and rock keep their full density
+    core = cobbles("rock_shoulders", _shrunk(SHOULDER_VOLUMES, 0.07), mats, seed + 40)
     bpy.data.objects.remove(car, do_unlink=True)
 
-    parts = [sh, core]
+    parts = [sh, *core]
     for side, sx in (("L", 1), ("R", -1)):
         vol = [((1.37 * sx, 0.07, 1.74), (0.42, 0.38, 0.5), 2.6)]
-        g = carrier(f"gauntlet_carrier.{side}", vol, voxel=0.02)
+        g = carrier(f"gauntlet_carrier.{side}", _shrunk(vol, 0.04), voxel=0.02)
         gp, _, _ = plates(f"gauntlet_plates.{side}", g, st, seed + (7 if sx > 0 else 13), cell=0.3, missing=0.2,
                           centers=[vol[0][0]])
-        decimate(gp, 0.35)
-        gr = rock_core(f"rock_gauntlet.{side}", vol, rk, seed + 5)
+        pass
+        gr = cobbles(f"rock_gauntlet.{side}", _shrunk(vol, 0.08), mats, seed + 5, cell=0.13)
         bpy.data.objects.remove(g, do_unlink=True)
-        parts += [gp, gr]
+        parts += [gp, *gr]
     for ob in parts:
         geo.shade(ob, 40)
     return parts
+
+
+def cobbles(name, volumes, mats, seed, cell=0.15, voxel=0.022, material="rock", core="rock_dark"):
+    """Rock mass built like the sheet draws it: stacked rounded stones with
+    thin dark cracks, over a darker smooth core that fills the gaps."""
+    base, side = (name[:-2], name[-2:]) if name[-2:] in (".L", ".R") else (name, "")
+    car = carrier(base + "_carrier" + side, volumes, voxel=voxel)
+    centers = [v[0] for v in volumes]
+    ob, _, _ = plates(name, car, mats[material], seed, cell=cell, gap=0.012, missing=0.0,
+                      thickness=(0.05, 0.09), flatten=0.45, bevel=0.03, centers=centers)
+    bpy.data.objects.remove(car, do_unlink=True)
+    filler = carrier(base + "_core" + side, _shrunk(volumes, 0.03), voxel=voxel * 1.6, smooth=4)
+    filler.data.materials.append(mats[core])
+    return [ob, filler]

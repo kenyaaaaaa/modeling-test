@@ -19,7 +19,7 @@ jobs:
       - name: Build, render and compare
         env:
           EGL_PLATFORM: surfaceless
-        run: .venv/bin/python scripts/build.py --stage case --out out
+        run: .venv/bin/python scripts/build.py --stage limbs --out out
       - uses: actions/upload-artifact@v4
         with:
           name: golem
