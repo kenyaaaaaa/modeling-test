@@ -1,0 +1,28 @@
+name: build
+
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Setup
+        env:
+          PYTHON: python
+        run: scripts/setup.sh
+      - name: Build, render and compare
+        env:
+          EGL_PLATFORM: surfaceless
+        run: .venv/bin/python scripts/build.py --stage blockout --out out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golem-blockout
+          path: |
+            out/*.blend
+            review/
