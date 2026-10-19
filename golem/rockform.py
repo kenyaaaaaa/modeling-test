@@ -53,11 +53,14 @@ def _variable_seeds(bm, rng, size_range):
 def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatten=0.85,
             crack_p=0.55, crack_w=0.018, crack_d=0.016, crease_w=0.06,
             spike_p=0.12, spike_h=0.07, dent_p=0.12, dent_d=0.035, warp=0.06, warp_freq=4.0, smooth=2,
-            ink="cracks"):
+            ink="cracks", missing_p=0.0, missing_d=0.14, step_cracks=False, wall_w=0.025):
     """Break a smooth surface into irregular facets, spikes, dents and cracks.
 
     ink: which cell borders get a Freestyle edge mark (the sheet's ink lines):
     "cracks", "all" or None.
+    missing_p: share of cells that drop to missing_d below the surface (a
+    plate broken out along its cracks).  step_cracks: no crease blending
+    across cracks, so the plates on either side sit at different heights.
     """
     rng = random.Random(seed)
     bm = bmesh.new()
@@ -81,7 +84,9 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
         n = (Matrix.Rotation(math.radians(rng.uniform(0, tilt_deg)), 3, axis) @ n).normalized()
         kind = rng.random()
         h = rng.uniform(-relief * 0.4, relief)
-        if kind < spike_p:
+        if rng.random() < missing_p:
+            planes.append(("missing", s, n, size, 0.0))
+        elif kind < spike_p:
             planes.append(("spike", s + vn[vi] * h, n, size, spike_h * rng.uniform(0.6, 1.3)))
         elif kind < spike_p + dent_p:
             planes.append(("dent", s + vn[vi] * (h - dent_d * rng.uniform(0.6, 1.3)), n, size, 0.0))
@@ -97,6 +102,8 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
 
     def offset(i, v, nv):
         kind, c, n, size, peak = planes[i]
+        if kind == "missing":
+            return -missing_d
         den = nv.dot(n)
         if abs(den) < 0.2:
             den = 0.2 if den >= 0 else -0.2
@@ -106,9 +113,13 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
             t += peak * max(0.0, 1.0 - 2.2 * r)
         return max(-0.12, min(0.16, t))
 
+    def is_missing(i):
+        return planes[i][0] == "missing"
+
     woff = Vector((rng.uniform(0, 99), rng.uniform(0, 99), rng.uniform(0, 99)))
     disp = {}
     cell = {}
+    walls = set()
     for v in bm.verts:
         nv = vn[v.index]
         # warp the lookup point so cell borders wander instead of running straight
@@ -118,12 +129,17 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
         cell[v.index] = i
         e = (d2 - d1) * 0.5
         t = offset(i, v.co, nv)
-        if e < crease_w:
-            # meet the neighbour facet along a crease instead of a step
+        sharp = is_missing(i) or is_missing(j) or (step_cracks and crack(i, j))
+        # meet the neighbour facet along a crease; steps get a short steep slope
+        # (several vertex rows) instead of one stretched wall
+        bw = wall_w if sharp else crease_w
+        if sharp and e < wall_w * 1.8:
+            walls.add(v)
+        if e < bw:
             tj = offset(j, v.co, nv)
-            w = 0.5 * (1 - e / crease_w)
+            w = 0.5 * (1 - e / bw)
             t = t * (1 - w) + tj * w
-        if e < crack_w and crack(i, j):
+        if e < crack_w and crack(i, j) and not is_missing(i):
             t -= crack_d * (1 - e / crack_w) ** 1.5
         disp[v] = t
     # relax the displacement a little: removes voxel stair-steps along borders
@@ -132,6 +148,15 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
         for v, t in disp.items():
             nb = [disp[e.other_vert(v)] for e in v.link_edges]
             new[v] = 0.5 * t + 0.5 * sum(nb) / len(nb) if nb else t
+        disp = new
+    # steps between plates: extra relaxing along the wall band only, so the
+    # wall follows the crack line instead of the voxel grid
+    for _ in range(8):
+        new = dict(disp)
+        for v in walls:
+            nb = [disp[e.other_vert(v)] for e in v.link_edges]
+            if nb:
+                new[v] = 0.4 * disp[v] + 0.6 * sum(nb) / len(nb)
         disp = new
     for v, t in disp.items():
         v.co += vn[v.index] * t
@@ -191,8 +216,28 @@ def _blob(bm_out, center, normal, size, rng, jag=0.25, min_depth=0.0):
     bpy.data.meshes.remove(me)
 
 
+def _depth_materials(ob, surface, thickness, material, rock_material, seed):
+    """Faces deeper than the crust are rock (with a rough floor); the rest white."""
+    me = ob.data
+    rock_idx = [i for i, m in enumerate(me.materials) if m == rock_material][0]
+    white_idx = [i for i, m in enumerate(me.materials) if m == material][0]
+    off = Vector((seed * 1.3, seed * 2.1, seed * 0.7))
+    floor_verts = set()
+    for poly in me.polygons:
+        _, _, _, dist = surface.find_nearest(poly.center)
+        if dist is not None and dist > thickness:
+            poly.material_index = rock_idx
+            floor_verts.update(poly.vertices)
+        else:
+            poly.material_index = white_idx
+    for vi in floor_verts:   # broad lumps only: fine noise turns into hatching under the ink lines
+        v = me.vertices[vi]
+        v.co += v.normal * (0.018 * noise.noise(v.co * 3.5 + off))
+    me.update()
+
+
 def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0.085, holes=18,
-          hole_size=(0.13, 0.32), keep=None, extra_cuts=(), **kw):
+          hole_size=(0.13, 0.32), keep=None, extra_cuts=(), missing_p=0.2, **kw):
     """White crust over rock, faceted and cracked, torn open in patches.
 
     The faceted solid is cut with irregular blobs (Boolean).  Cut faces get
@@ -204,10 +249,11 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
     outer = stone.carrier(name, volumes, voxel=voxel, smooth=6)
     outer.data.materials.append(material)
     outer.data.materials.append(rock_material)
-    faceted(outer, seed, size_range=(0.25, 0.7), relief=0.016, tilt_deg=6, flatten=0.85, crack_p=0.6,
-            crack_w=0.016, crack_d=0.035, crease_w=0.12, spike_p=0.0, dent_p=0.06, dent_d=0.02, warp=0.08,
-            smooth=1, **kw)
+    # the smooth surface before breaking it: depth below it decides crust vs rock
     surface = BVHTree.FromObject(outer, bpy.context.evaluated_depsgraph_get())
+    faceted(outer, seed, size_range=(0.22, 0.6), relief=0.03, tilt_deg=7, flatten=0.85, crack_p=0.65,
+            crack_w=0.016, crack_d=0.03, crease_w=0.12, spike_p=0.0, dent_p=0.05, dent_d=0.02, warp=0.08,
+            smooth=1, missing_p=missing_p, missing_d=thickness * 1.6, step_cracks=True, **kw)
     pts = [v.co.copy() for v in outer.data.vertices]
     nrm = [v.normal.copy() for v in outer.data.vertices]
     cut = bmesh.new()
@@ -240,6 +286,7 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
         placed.append((Vector(c), max(r)))
     if not placed:
         cut.free()
+        _depth_materials(outer, surface, thickness, material, rock_material, seed)
         return outer
     cme = bpy.data.meshes.new(name + "_cut")
     cut.to_mesh(cme)
@@ -259,26 +306,7 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
     outer.data = new
     bpy.data.meshes.remove(old)
     bpy.data.objects.remove(cutter, do_unlink=True)
-    # material by depth, and roughen the rock floors
-    me = outer.data
-    rock_idx = [i for i, m in enumerate(me.materials) if m == rock_material][0]
-    white_idx = [i for i, m in enumerate(me.materials) if m == material][0]
-    off = Vector((seed * 1.3, seed * 2.1, seed * 0.7))
-    floor_verts = set()
-    for poly in me.polygons:
-        if poly.material_index != rock_idx:
-            continue
-        c = poly.center
-        loc, _, _, dist = surface.find_nearest(c)
-        if dist is not None and dist < thickness:
-            poly.material_index = white_idx
-        else:
-            floor_verts.update(poly.vertices)
-    for vi in floor_verts:
-        v = me.vertices[vi]
-        b = 1.0 - abs(noise.noise(v.co * 9 + off))
-        v.co += v.normal * (0.03 * b * b - 0.01)
-    me.update()
+    _depth_materials(outer, surface, thickness, material, rock_material, seed)
     return outer
 
 
@@ -319,8 +347,8 @@ def bark_flap(name, center, radius, a0, a1, z_top, length, peel, material, seed,
     parts = [geo._link(name, bm, material)]
     if drip:
         am = (a0 + a1) * 0.5 + (a1 - a0) * 0.2
-        rb = radius + peel + curl
-        x, y, z = cx + rb * math.cos(am), cy + rb * math.sin(am), z_top - length * 0.92
+        rb = radius + peel * 0.7 + curl * 0.8
+        x, y, z = cx + rb * math.cos(am), cy + rb * math.sin(am), z_top - length * 0.78
         pts = geo.catmull_rom([(x, y, z), (x, y, z - 0.06), (x + 0.005, y, z - 0.12)], 3)
         rad = [0.022 * (1 - i / (len(pts) - 1)) ** 0.6 + 0.004 for i in range(len(pts))]
         parts.append(geo.tube(name + "_drip", pts, rad, material, 8))

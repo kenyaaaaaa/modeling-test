@@ -1,16 +1,16 @@
 {
  "stage": "limbs",
  "objects": 317,
- "triangles": 636418,
+ "triangles": 725400,
  "views": {
   "front": {
-   "iou": 0.854
+   "iou": 0.853
   },
   "side": {
-   "iou": 0.849
+   "iou": 0.852
   },
   "back": {
-   "iou": 0.84
+   "iou": 0.845
   }
  },
  "triangles_by_group": {
@@ -19,11 +19,11 @@
   "gears_and_weights": 31056,
   "hourglass": 15924,
   "rock_body_limbs": 268220,
-  "stone_plates": 261958
+  "stone_plates": 350940
  },
  "size_m": {
   "width_x": 3.849,
-  "depth_y": 1.633,
-  "height_z": 3.581
+  "depth_y": 1.63,
+  "height_z": 3.624
  }
 }

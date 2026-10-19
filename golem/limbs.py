@@ -282,14 +282,14 @@ def build(mats, seed=1):
     leg = ([((0.44, -0.10, 0.82), (0.22, 0.27, 0.18), 2.0), ((0.44, -0.05, 0.96), (0.2, 0.2, 0.12), 2.0)]
            + _capsule((0.44, -0.06, 0.70), (0.44, -0.10, 0.2), 0.11, 0.13)
            + [((0.6, -0.13, 0.065), (0.34, 0.42, 0.08), 2.2), ((0.48, -0.12, 0.13), (0.17, 0.18, 0.07), 2.0)])
-    left += rock("rock_leg.L", leg, mats, seed + 24, cobble=0.12, spikes=0.18)
+    left += rock("rock_leg.L", leg, mats, seed + 24, cobble=0.12, spikes=0.07)
     left += rockform.bark_flap("knee_cuff.L", (0.44, -0.08), 0.2, -2.3, -0.9, 0.93, 0.2, 0.05, mats["rock_light"],
                                seed + 27, curl=0.03)
-    for k, x in enumerate((0.72, 0.17)):
+    for k, (x, y_b) in enumerate(((0.66, -0.2), (0.2, -0.1))):
         bell = geo.catmull_rom([(0.0, 0.66), (0.01, 0.70), (0.03, 0.74), (0.07, 0.77), (0.078, 0.79), (0.05, 0.82),
                                 (0.035, 0.85), (0.042, 0.87), (0.02, 0.9), (0.0, 0.92)], 2)
-        left.append(geo.lathe(f"bell_{k}.L", bell, 24, mats["brass"], matrix=geo.axis_matrix((x, -0.06, 0), (0, 0, 1))))
-        left.append(geo.cylinder(f"bell_arm_{k}.L", (x, -0.06, 0.83), (0.44 + (x - 0.44) * 0.4, -0.03, 0.83), 0.02,
+        left.append(geo.lathe(f"bell_{k}.L", bell, 24, mats["brass"], matrix=geo.axis_matrix((x, y_b, 0), (0, 0, 1))))
+        left.append(geo.cylinder(f"bell_arm_{k}.L", (x, y_b, 0.83), (0.44 + (x - 0.44) * 0.4, -0.08, 0.83), 0.02,
                                  mats["brass"], 8))
 
     # shoulder sockets and drips

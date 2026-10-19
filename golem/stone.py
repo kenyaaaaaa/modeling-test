@@ -270,13 +270,13 @@ def build(mats, seed=1):
         return not (abs(c.x) < 0.55 and c.y < -0.25 and c.z < 3.2)
     # opening for the back wheel and its housing
     wheel = [((0.0, 0.5, 2.70), (0.55, 0.22, 0.5))]
-    sh = rockform.crust("shoulder_crust", SHOULDER_VOLUMES, st, rk, seed, holes=64, hole_size=(0.09, 0.26), keep=keep,
+    sh = rockform.crust("shoulder_crust", SHOULDER_VOLUMES, st, rk, seed, holes=7, hole_size=(0.08, 0.16), keep=keep, missing_p=0.26,
                         extra_cuts=wheel)
     parts = [sh]
     for side, sx in (("L", 1), ("R", -1)):
         vol = [((1.37 * sx, 0.07, 1.74), (0.42, 0.38, 0.5), 2.6)]
-        parts.append(rockform.crust(f"gauntlet_crust.{side}", vol, st, rk, seed + (7 if sx > 0 else 13), holes=7,
-                                    hole_size=(0.1, 0.22)))
+        parts.append(rockform.crust(f"gauntlet_crust.{side}", vol, st, rk, seed + (7 if sx > 0 else 13), holes=4,
+                                    hole_size=(0.1, 0.2), missing_p=0.16))
     for ob in parts:
         geo.shade(ob, 40)
     return parts
