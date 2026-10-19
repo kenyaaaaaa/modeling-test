@@ -7,6 +7,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -16,13 +17,31 @@ jobs:
         env:
           PYTHON: python
         run: scripts/setup.sh
+      - name: Export for Godot
+        env:
+          EGL_PLATFORM: surfaceless
+        run: .venv/bin/python scripts/export_godot.py --out godot/golem
+      - name: Check in Godot (headless)
+        run: |
+          curl -sSL -o godot.zip https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --import
+          ./Godot_v4.4.1-stable_linux.x86_64 --headless --path godot --script res://tools/check.gd | tee check.txt
+          grep -q '"bones":25' check.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: golem-godot
+          path: |
+            godot/
+            !godot/.godot/
+            !godot/**/*.import
       - name: Build, render and compare
         env:
           EGL_PLATFORM: surfaceless
         run: .venv/bin/python scripts/build.py --stage limbs --out out
       - uses: actions/upload-artifact@v4
         with:
-          name: golem
+          name: golem-review
           path: |
             out/*.blend
             review/
