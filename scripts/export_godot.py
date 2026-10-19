@@ -49,6 +49,7 @@ def main():
     bpy.ops.export_scene.gltf(filepath=glb, export_format="GLB", export_skins=True, export_animations=True,
                               export_animation_mode="ACTIONS", export_vertex_color="ACTIVE",
                               export_all_vertex_colors=False, export_yup=True, export_apply=False)
+    os.makedirs("out", exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath("out/golem_rigged.blend"))
     info = {"triangles": tris, "parts_joined": len(names), "bones": len(arm.data.bones),
             "materials": [m.name for m in body.data.materials], "glb_bytes": os.path.getsize(glb)}
