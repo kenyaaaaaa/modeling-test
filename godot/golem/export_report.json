@@ -1,0 +1,19 @@
+{
+ "triangles": 725400,
+ "parts_joined": 317,
+ "bones": 25,
+ "materials": [
+  "brass",
+  "brass_dark",
+  "glass",
+  "sand_dark",
+  "sand_glow",
+  "clock_face",
+  "ink",
+  "stone",
+  "rock",
+  "rock_light",
+  "rock_dark"
+ ],
+ "glb_bytes": 36380368
+}
