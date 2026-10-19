@@ -261,29 +261,21 @@ def _shrunk(volumes, d):
 
 
 def build(mats, seed=1):
+    """Shoulders and gauntlets: a white crust over rock, torn open in patches."""
+    from . import rockform  # rockform builds on this module
     geo.remove(REPLACES)
     st, rk = mats["stone"], mats["rock"]
-    car = carrier("shoulder_carrier", _shrunk(SHOULDER_VOLUMES, 0.035))
-    # no plates where the clock case sits in front
-    def keep(c):
-        front_case = abs(c.x) < 0.55 and c.y < -0.25 and c.z < 3.2
-        back_wheel = abs(c.x) < 0.5 and c.y > 0.25 and 2.22 < c.z < 3.14
-        return not (front_case or back_wheel)
-    sh, _, _ = plates("shoulder_plates", car, st, seed, keep=keep, centers=[v[0] for v in SHOULDER_VOLUMES])
-    # no polygon cap (2026-10-19): plates and rock keep their full density
-    core = cobbles("rock_shoulders", _shrunk(SHOULDER_VOLUMES, 0.07), mats, seed + 40)
-    bpy.data.objects.remove(car, do_unlink=True)
 
-    parts = [sh, *core]
+    def keep(c):   # no torn holes hidden behind the clock case
+        return not (abs(c.x) < 0.55 and c.y < -0.25 and c.z < 3.2)
+    # opening for the back wheel and its housing
+    wheel = [((0.0, 0.5, 2.70), (0.55, 0.22, 0.5))]
+    sh = rockform.crust("shoulder_crust", SHOULDER_VOLUMES, st, rk, seed, holes=26, keep=keep, extra_cuts=wheel)
+    parts = [sh]
     for side, sx in (("L", 1), ("R", -1)):
         vol = [((1.37 * sx, 0.07, 1.74), (0.42, 0.38, 0.5), 2.6)]
-        g = carrier(f"gauntlet_carrier.{side}", _shrunk(vol, 0.04), voxel=0.02)
-        gp, _, _ = plates(f"gauntlet_plates.{side}", g, st, seed + (7 if sx > 0 else 13), cell=0.3, missing=0.2,
-                          centers=[vol[0][0]])
-        pass
-        gr = cobbles(f"rock_gauntlet.{side}", _shrunk(vol, 0.08), mats, seed + 5, cell=0.13)
-        bpy.data.objects.remove(g, do_unlink=True)
-        parts += [gp, *gr]
+        parts.append(rockform.crust(f"gauntlet_crust.{side}", vol, st, rk, seed + (7 if sx > 0 else 13), holes=7,
+                                    hole_size=(0.1, 0.22)))
     for ob in parts:
         geo.shade(ob, 40)
     return parts

@@ -11,7 +11,7 @@ import bpy
 from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
-from . import geo, stone
+from . import geo, rockform, stone
 
 REPLACES = [
     "torso_core", "pelvis", "back_wheel", "back_frame",
@@ -123,9 +123,12 @@ def claws(name, cx, cy, z, ring, mats, seed, n=7):
     return parts
 
 
-def rock(name, volumes, mats, seed, cobble=0.15, material="rock", **_):
-    """Rock mass of stacked stones (stone.cobbles); returns [stones, core]."""
-    return stone.cobbles(name, volumes, mats, seed, cell=cobble, material=material)
+def rock(name, volumes, mats, seed, cobble=0.15, material="rock", spikes=0.12, **_):
+    """One solid rock mass with a broken, faceted surface; returns [mass]."""
+    lo, hi = cobble * 0.6, cobble * 1.9
+    return [rockform.solid(name, volumes, mats[material], seed, size_range=(lo, hi), spike_p=spikes * 0.6,
+                           relief=0.035, tilt_deg=12, flatten=0.9, crack_p=0.85, crack_w=0.018, crack_d=0.035,
+                           crease_w=0.03, smooth=1, warp=0.04)]
 
 
 def _surface_points(target, dirs_from, rng=None):
@@ -262,24 +265,28 @@ def build(mats, seed=1):
     centre += (rock("rock_torso", [((0, 0.0, 1.75), (0.58, 0.33, 0.8), 2.0), ((0, 0.0, 0.98), (0.55, 0.28, 0.22), 2.0)],
                        mats, seed + 20, cobble=0.17))
 
-    # arm: upper arm rock, forearm rock and hand
-    left += rock("rock_upperarm.L", _capsule((1.0, 0.08, 2.32), (1.25, 0.07, 1.95), 0.25, 0.27), mats, seed + 21)
-    fore = _capsule((1.36, 0.05, 1.40), (1.28, 0.0, 1.06), 0.25, 0.22) + [((1.28, 0.0, 0.98), (0.27, 0.24, 0.14), 2.2)]
-    left += rock("rock_forearm.L", fore, mats, seed + 22, cobble=0.14)
-    left += claws("claw.L", 1.28, 0.0, 0.98, 0.25, mats, seed + 23)
+    # arm: one rock trunk from the shoulder to the wrist (the gauntlet crust sits on it)
+    arm = (_capsule((1.0, 0.08, 2.32), (1.25, 0.07, 1.95), 0.25, 0.27)
+           + [((1.37, 0.07, 1.74), (0.36, 0.32, 0.44), 2.4)]
+           + _capsule((1.36, 0.05, 1.40), (1.28, 0.0, 1.06), 0.25, 0.22)
+           + [((1.28, 0.0, 0.98), (0.27, 0.24, 0.14), 2.2)])
+    left += rock("rock_arm.L", arm, mats, seed + 21, cobble=0.13)
+    # wrist: brown weathered cuff peeling open, fluted pedestal, lantern and drops
+    left += rockform.bark_cuff("cuff.L", (1.28, 0.0), 0.25, 1.06, 0.74, mats["rock_light"], seed + 23)
+    left.append(rockform.fluted_drum("wrist_drum.L", (1.27, 0.0), 0.96, 0.86, 0.13, 0.095, mats["rock_light"]))
     left += lantern("lantern.L", 1.27, 0.0, mats)
     for k, x in enumerate((1.03, 1.50)):
-        left += finial_weight(f"weight_{k}.L", x, -0.02, 0.86, 0.50, mats)
+        left += finial_weight(f"weight_{k}.L", x, -0.02, 0.80, 0.48, mats)
     left += ship_wheel("gear_big.L", (1.68, -0.20, 1.66), (0.6, -0.8, 0.0), 0.27, mats)
     left += small_gear("gear_small.L", (1.12, -0.33, 1.86), (0, -1, 0), 0.1, mats)
     left += small_gear("gear_back.L", (1.37, 0.44, 1.80), (0, 1, 0), 0.09, mats)
 
-    # leg: thigh, shin, foot and the brass bells at the knee
+    # leg: one rock mass from hip to the broad, jagged foot, with brass bells at the knee
     leg = ([((0.44, -0.10, 0.82), (0.22, 0.27, 0.18), 2.0), ((0.44, -0.05, 0.96), (0.2, 0.2, 0.12), 2.0)]
-           + _capsule((0.44, -0.06, 0.70), (0.44, -0.10, 0.2), 0.11, 0.13))
-    left += rock("rock_leg.L", leg, mats, seed + 24, cobble=0.13)
-    left += (rock("rock_foot.L", [((0.6, -0.13, 0.065), (0.34, 0.42, 0.08), 2.2), ((0.48, -0.12, 0.13), (0.17, 0.18, 0.07), 2.0)],
-                     mats, seed + 25, cobble=0.15))
+           + _capsule((0.44, -0.06, 0.70), (0.44, -0.10, 0.2), 0.11, 0.13)
+           + [((0.6, -0.13, 0.065), (0.34, 0.42, 0.08), 2.2), ((0.48, -0.12, 0.13), (0.17, 0.18, 0.07), 2.0)])
+    left += rock("rock_leg.L", leg, mats, seed + 24, cobble=0.12, spikes=0.18)
+    left += rockform.bark_cuff("knee_cuff.L", (0.44, -0.08), 0.21, 0.92, 0.74, mats["rock_light"], seed + 27, flaps=3)
     for k, x in enumerate((0.72, 0.17)):
         bell = geo.catmull_rom([(0.0, 0.66), (0.01, 0.70), (0.03, 0.74), (0.07, 0.77), (0.078, 0.79), (0.05, 0.82),
                                 (0.035, 0.85), (0.042, 0.87), (0.02, 0.9), (0.0, 0.92)], 2)
@@ -288,7 +295,7 @@ def build(mats, seed=1):
                                  mats["brass"], 8))
 
     # shoulder sockets and drips
-    plates = bpy.data.objects.get("shoulder_plates")
+    plates = bpy.data.objects.get("shoulder_crust")
     if plates is not None:
         specs = [((0.9, 0.1, 2.62), (0.7, -0.6, 0.4)), ((0.9, 0.1, 2.62), (1.0, 0.0, -0.2)),
                  ((0.9, 0.1, 2.62), (0.2, 0.6, 0.6)), ((0.0, 0.05, 2.82), (0.55, -0.3, 1.0))]
@@ -300,7 +307,7 @@ def build(mats, seed=1):
     centre += back_mechanism(mats)
 
     for ob in left + centre:
-        geo.shade(ob, 22 if ob.name.startswith("claw") else 40)
+        geo.shade(ob, 40)
     for ob in list(left):
         geo.mirror_x(ob, ob.name[:-2] + ".R")
     return centre, left

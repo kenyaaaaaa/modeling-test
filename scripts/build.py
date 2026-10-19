@@ -24,7 +24,7 @@ GROUPS = {
     "hourglass": ("hourglass_", "sand_"),
     "case_and_clock": ("case_", "capital_", "cornice_", "orb_", "clock_"),
     "stone_plates": ("shoulder", "gauntlet"),
-    "gears_and_weights": ("gear_", "weight_", "lantern", "bell_", "socket_"),
+    "gears_and_weights": ("gear_", "weight_", "lantern", "bell_", "socket_", "wrist_"),
     "back_mechanism": ("back_",),
 }
 # Each stage replaces some blockout volumes with detailed parts.
