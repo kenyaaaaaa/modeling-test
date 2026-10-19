@@ -151,11 +151,11 @@ def _bridge_loops(bm, loops, closed, cap):
         bm.faces.new(loops[-1])
 
 
-def prism(name, poly, z0, z1, center=(0.0, 0.0, 0.0), material=None):
-    """Extrude a closed 2D polygon (XY) from z0 to z1."""
+def prism(name, poly, z0, z1, center=(0.0, 0.0, 0.0), material=None, top_scale=1.0):
+    """Extrude a closed 2D polygon (XY) from z0 to z1 (optionally tapered)."""
     bm = bmesh.new()
     cx, cy, cz = center
-    loops = [[bm.verts.new((cx + x, cy + y, cz + z)) for x, y in poly] for z in (z0, z1)]
+    loops = [[bm.verts.new((cx + x * k, cy + y * k, cz + z)) for x, y in poly] for z, k in ((z0, 1.0), (z1, top_scale))]
     _bridge_loops(bm, loops, False, True)
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return _link(name, bm, material)
@@ -241,3 +241,88 @@ def remove(names):
         ob = bpy.data.objects.get(n)
         if ob is not None:
             bpy.data.objects.remove(ob, do_unlink=True)
+
+
+# --- detail helpers ---------------------------------------------------------
+
+def catmull_rom(points, samples=6, closed=False):
+    """Smooth a polyline of 2D/3D tuples through its points."""
+    pts = [Vector(p) for p in points]
+    n = len(pts)
+    out = []
+    last = n if closed else n - 1
+    for i in range(last):
+        p0 = pts[(i - 1) % n] if (closed or i > 0) else pts[i]
+        p1, p2 = pts[i], pts[(i + 1) % n]
+        p3 = pts[(i + 2) % n] if (closed or i + 2 < n) else pts[(i + 1) % n]
+        for s in range(samples):
+            t = s / samples
+            t2, t3 = t * t, t * t * t
+            v = 0.5 * ((2 * p1) + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3)
+            out.append(tuple(v))
+    if not closed:
+        out.append(tuple(pts[-1]))
+    return out
+
+
+def rounded_rect(hx, hy, r, segs=3):
+    """Counter-clockwise rounded rectangle (XY) centred on the origin."""
+    r = min(r, 0.45 * min(hx, hy))
+    pts = []
+    for cx, cy, a0 in ((hx - r, -hy + r, -90), (hx - r, hy - r, 0), (-hx + r, hy - r, 90), (-hx + r, -hy + r, 180)):
+        for k in range(segs + 1):
+            a = math.radians(a0 + 90 * k / segs)
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
+def ring_lathe(name, profile, center=(0.0, 0.0), aspect=(1.0, 1.0), corner=0.012, corner_segs=3, material=None):
+    """Stack of rounded-rectangle rings; profile is (half_width, z) bottom to top.
+
+    Mouldings, plinths and capitals with softened corners.
+    """
+    bm = bmesh.new()
+    loops = []
+    for hw, z in profile:
+        ring = rounded_rect(hw * aspect[0], hw * aspect[1], corner, corner_segs)
+        loops.append([bm.verts.new((center[0] + x, center[1] + y, z)) for x, y in ring])
+    _bridge_loops(bm, loops, False, True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def ellipse_section(u, v, segs=10):
+    return [(u * math.cos(2 * math.pi * i / segs), v * math.sin(2 * math.pi * i / segs)) for i in range(segs)]
+
+
+def sweep_section_xz(name, path, section, y_center, material=None, closed=False):
+    """Sweep a 2D section along a path of (x, z) points in the plane y = y_center.
+
+    Section points are (u, v): u along the in-plane normal (outwards for a
+    counter-clockwise path), v along +Y.
+    """
+    bm = bmesh.new()
+    n = len(path)
+    loops = []
+    for i, (x, z) in enumerate(path):
+        prev = path[(i - 1) % n] if (closed or i > 0) else path[i]
+        nxt = path[(i + 1) % n] if (closed or i < n - 1) else path[i]
+        tx, tz = nxt[0] - prev[0], nxt[1] - prev[1]
+        ln = math.hypot(tx, tz) or 1.0
+        nx, nz = tz / ln, -tx / ln
+        loops.append([bm.verts.new((x + nx * u, y_center + v, z + nz * u)) for u, v in section])
+    _bridge_loops(bm, loops, closed, not closed)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    return _link(name, bm, material)
+
+
+def bevel_all(ob, offset, segments=2, angle_deg=40):
+    return bevel_edges(ob, offset, segments, angle_deg)
+
+
+def displace(ob, fn):
+    """Move each vertex: fn(Vector) -> Vector."""
+    for v in ob.data.vertices:
+        v.co = fn(v.co.copy())
+    ob.data.update()
+    return ob

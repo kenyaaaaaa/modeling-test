@@ -1,13 +1,13 @@
 {
  "stage": "case",
- "objects": 87,
- "triangles": 11684,
+ "objects": 120,
+ "triangles": 42054,
  "views": {
   "front": {
    "iou": 0.873
   },
   "side": {
-   "iou": 0.854
+   "iou": 0.853
   },
   "back": {
    "iou": 0.851
@@ -16,32 +16,32 @@
  "triangles_by_group": {
   "back_mechanism": {
    "now": 136,
-   "budget": 500
+   "budget": 7000
   },
   "case_and_clock": {
-   "now": 5308,
-   "budget": 8000
+   "now": 27238,
+   "budget": 28000
   },
   "gears_and_weights": {
    "now": 596,
-   "budget": 2500
+   "budget": 12000
   },
   "hourglass": {
-   "now": 2276,
-   "budget": 2500
+   "now": 10716,
+   "budget": 11000
   },
   "rock_body_limbs": {
    "now": 1472,
-   "budget": 5500
+   "budget": 20000
   },
   "stone_plates": {
    "now": 1896,
-   "budget": 6000
+   "budget": 22000
   }
  },
  "size_m": {
   "width_x": 3.774,
-  "depth_y": 1.551,
+  "depth_y": 1.561,
   "height_z": 3.54
  }
 }
