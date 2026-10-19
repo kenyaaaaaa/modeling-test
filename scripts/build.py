@@ -49,6 +49,8 @@ def main():
     ap.add_argument("--out", default="out")
     ap.add_argument("--review", default="review", help="folder for the committed review images")
     ap.add_argument("--seed", type=int, default=None, help="stone/rock seed (default: spec stone_seed)")
+    ap.add_argument("--flat", dest="toon", action="store_false",
+                    help="quick grey Workbench previews instead of the toon look")
     args = ap.parse_args()
     os.makedirs(args.out, exist_ok=True)
     review = os.path.join(args.review, args.stage)
@@ -89,7 +91,10 @@ def main():
         report["views"][v] = {"iou": round(compare.iou(model, ref), 3)}
         compare.diff_image(model, ref, v, os.path.join(review, f"diff_{v}.png"))
         prev = os.path.join(args.out, f"preview_{v}.png")
-        views.render_preview(v, prev, scale=3)
+        if args.toon:
+            views.render_toon_view(v, prev, scale=3)
+        else:
+            views.render_preview(v, prev, scale=3)
         x0, y0, x1, y1 = R.VIEWS[v]
         refcrop = os.path.join(args.out, f"ref_{v}.png")
         Image.open(R.SHEET).crop((x0, y0, x1, y1)).save(refcrop)
@@ -107,10 +112,11 @@ def main():
         Image.open(R.SHEET).crop((cx0, cy0, cx1, cy1)).save(refd)
         compare.side_by_side([refd, mine], os.path.join(review, f"detail_{name}.png"), height=900)
 
-    views.render_three_quarter(os.path.join(review, "three_quarter.png"))
+    three_q = views.render_toon_three_quarter if args.toon else views.render_three_quarter
+    three_q(os.path.join(review, "three_quarter.png"))
     if args.stage in ("case", "stone", "limbs"):
-        views.render_three_quarter(os.path.join(review, "three_quarter_case.png"), yaw_deg=-30, size=(900, 1100),
-                                   target_z=2.2, target=(0.0, -0.6), dist=6.0)
+        three_q(os.path.join(review, "three_quarter_case.png"), yaw_deg=-30, size=(900, 1100),
+                target_z=2.2, target=(0.0, -0.6), dist=6.0)
 
     bpy.ops.wm.save_as_mainfile(filepath=os.path.abspath(os.path.join(args.out, f"golem_{args.stage}.blend")))
     with open(os.path.join(review, "report.json"), "w", encoding="utf-8") as f:

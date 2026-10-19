@@ -369,8 +369,21 @@ def gear(name, origin, axis, radius, teeth, depth, material=None, tooth=0.25, ho
             a = a0 + step * f
             pts.append((r * math.cos(a), r * math.sin(a)))
     bm = bmesh.new()
-    loops = [[bm.verts.new((x, y, z)) for x, y in pts] for z in (-depth / 2, depth / 2)]
-    _bridge_loops(bm, loops, False, True)
+    if hole <= 0:
+        loops = [[bm.verts.new((x, y, z)) for x, y in pts] for z in (-depth / 2, depth / 2)]
+        _bridge_loops(bm, loops, False, True)
+    else:
+        # toothed ring: outer outline and an inner circle with the same vertex count
+        inner = [(radius * hole * x / math.hypot(x, y), radius * hole * y / math.hypot(x, y)) for x, y in pts]
+        o0, o1 = ([bm.verts.new((x, y, z)) for x, y in pts] for z in (-depth / 2, depth / 2))
+        i0, i1 = ([bm.verts.new((x, y, z)) for x, y in inner] for z in (-depth / 2, depth / 2))
+        n = len(pts)
+        for k in range(n):
+            m = (k + 1) % n
+            bm.faces.new((o0[k], o0[m], o1[m], o1[k]))      # outer wall
+            bm.faces.new((i0[m], i0[k], i1[k], i1[m]))      # inner wall
+            bm.faces.new((o1[k], o1[m], i1[m], i1[k]))      # top
+            bm.faces.new((o0[m], o0[k], i0[k], i0[m]))      # bottom
     bm.transform(axis_matrix(origin, axis))
     bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
     return _link(name, bm, material)

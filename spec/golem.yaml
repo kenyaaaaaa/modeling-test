@@ -18,8 +18,8 @@ palette:
   brass:        "#d6be86"
   brass_mid:    "#918160"
   brass_shadow: "#635030"
-  rock_light:   "#695c52"
-  rock:         "#574a48"   # k-means gave #3f383a; lifted towards #695c52 to read as brown-purple
+  rock_light:   "#7d6858"   # wrist pieces; the sheet shows #5a4b44 in shade, lighter in light
+  rock:         "#5f5659"   # lit rock on the concept is ~#5a5355 (purple-grey); toon bands darken it
   rock_dark:    "#3d322e"
   outline:      "#130e0d"
   sand_dark:    "#2c2838"

@@ -52,8 +52,13 @@ def _variable_seeds(bm, rng, size_range):
 
 def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatten=0.85,
             crack_p=0.55, crack_w=0.018, crack_d=0.016, crease_w=0.06,
-            spike_p=0.12, spike_h=0.07, dent_p=0.12, dent_d=0.035, warp=0.06, warp_freq=4.0, smooth=2):
-    """Break a smooth surface into irregular facets, spikes, dents and cracks."""
+            spike_p=0.12, spike_h=0.07, dent_p=0.12, dent_d=0.035, warp=0.06, warp_freq=4.0, smooth=2,
+            ink="cracks"):
+    """Break a smooth surface into irregular facets, spikes, dents and cracks.
+
+    ink: which cell borders get a Freestyle edge mark (the sheet's ink lines):
+    "cracks", "all" or None.
+    """
     rng = random.Random(seed)
     bm = bmesh.new()
     bm.from_mesh(ob.data)
@@ -103,12 +108,14 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
 
     woff = Vector((rng.uniform(0, 99), rng.uniform(0, 99), rng.uniform(0, 99)))
     disp = {}
+    cell = {}
     for v in bm.verts:
         nv = vn[v.index]
         # warp the lookup point so cell borders wander instead of running straight
         q = v.co + Vector((noise.noise(v.co * warp_freq + woff), noise.noise(v.co * warp_freq - woff),
                            noise.noise(v.co * warp_freq + woff * 0.37))) * warp
         (_, i, d1), (_, j, d2) = tree.find_n(q, 2)
+        cell[v.index] = i
         e = (d2 - d1) * 0.5
         t = offset(i, v.co, nv)
         if e < crease_w:
@@ -130,7 +137,29 @@ def faceted(ob, seed, size_range=(0.10, 0.30), relief=0.035, tilt_deg=14, flatte
         v.co += vn[v.index] * t
     bm.to_mesh(ob.data)
     bm.free()
-    ob.data.update()
+    me = ob.data
+    if ink:
+        attr = me.attributes.get("freestyle_edge") or me.attributes.new("freestyle_edge", "BOOLEAN", "EDGE")
+        # border vertices: which other cells each vertex touches
+        others = {}
+        for e in me.edges:
+            u, w = e.vertices
+            if cell[u] != cell[w]:
+                others.setdefault(u, set()).add(cell[w])
+                others.setdefault(w, set()).add(cell[u])
+        marks = [False] * len(me.edges)
+        for k, e in enumerate(me.edges):
+            u, w = e.vertices
+            a = cell[u]
+            if cell[w] != a or u not in others or w not in others:
+                continue
+            # an edge running along the border, drawn from the lower-numbered side only
+            for b in others[u] & others[w]:
+                if a < b and (ink == "all" or crack(a, b)):
+                    marks[k] = True
+                    break
+        attr.data.foreach_set("value", marks)
+    me.update()
     return ob
 
 
@@ -141,7 +170,7 @@ def solid(name, volumes, material, seed, voxel=0.013, **kw):
     return faceted(ob, seed, **kw)
 
 
-def _blob(bm_out, center, normal, size, rng, jag=0.25):
+def _blob(bm_out, center, normal, size, rng, jag=0.25, min_depth=0.0):
     """Irregular cutter: a squashed sphere with noisy, jagged surface."""
     tmp = bmesh.new()
     bmesh.ops.create_icosphere(tmp, subdivisions=3, radius=1.0)
@@ -153,7 +182,8 @@ def _blob(bm_out, center, normal, size, rng, jag=0.25):
     sx, sy, sz = rng.uniform(0.7, 1.3), rng.uniform(0.7, 1.3), rng.uniform(0.9, 1.4)
     rot = Vector((0, 0, 1)).rotation_difference(normal).to_matrix().to_4x4()
     spin = Matrix.Rotation(rng.uniform(0, 6.28), 4, "Z")
-    tmp.transform(Matrix.Translation(center) @ rot @ spin @ Matrix.Diagonal((size * sx, size * sy, size * 0.6 * sz, 1)))
+    depth = max(size * 0.6 * sz, min_depth)
+    tmp.transform(Matrix.Translation(center) @ rot @ spin @ Matrix.Diagonal((size * sx, size * sy, depth, 1)))
     me = bpy.data.meshes.new("blob")
     tmp.to_mesh(me)
     tmp.free()
@@ -174,8 +204,8 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
     outer = stone.carrier(name, volumes, voxel=voxel, smooth=6)
     outer.data.materials.append(material)
     outer.data.materials.append(rock_material)
-    faceted(outer, seed, size_range=(0.2, 0.55), relief=0.014, tilt_deg=5, flatten=0.9, crack_p=0.55,
-            crack_w=0.016, crack_d=0.035, crease_w=0.09, spike_p=0.0, dent_p=0.06, dent_d=0.02, warp=0.05,
+    faceted(outer, seed, size_range=(0.25, 0.7), relief=0.016, tilt_deg=6, flatten=0.85, crack_p=0.6,
+            crack_w=0.016, crack_d=0.035, crease_w=0.12, spike_p=0.0, dent_p=0.06, dent_d=0.02, warp=0.08,
             smooth=1, **kw)
     surface = BVHTree.FromObject(outer, bpy.context.evaluated_depsgraph_get())
     pts = [v.co.copy() for v in outer.data.vertices]
@@ -193,7 +223,7 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
         if any((p - q).length < (size + r) * 0.9 for q, r in placed):
             continue
         placed.append((p, size))
-        _blob(cut, p, nrm[i], size, rng, jag=0.16)
+        _blob(cut, p, nrm[i], size, rng, jag=0.16, min_depth=thickness * 1.8)
     for c, r in extra_cuts:   # fixed openings, e.g. where the back wheel sits
         tmp = bmesh.new()
         bmesh.ops.create_icosphere(tmp, subdivisions=3, radius=1.0)
@@ -252,50 +282,90 @@ def crust(name, volumes, material, rock_material, seed, voxel=0.011, thickness=0
     return outer
 
 
-def bark_cuff(name, center, radius, z_top, z_bot, material, seed, flaps=4, thickness=0.04):
-    """Brown weathered cuff around the wrist, split into flaps that peel out,
-    flare at the bottom and curl into a lip (the sheet's wrist pieces)."""
+def bark_flap(name, center, radius, a0, a1, z_top, length, peel, material, seed, thickness=0.04, curl=0.05,
+              drip=False):
+    """One weathered brown flap of the wrist cuff: hugs the wrist at the top,
+    peels outwards, flares, and rolls into a lip at a ragged bottom edge."""
     rng = random.Random(seed)
     cx, cy = center
+    cols, rows = 16, 14
+    off = rng.uniform(0, 50)
+    bm = bmesh.new()
+    grid = []
+    for r in range(rows + 1):
+        t = r / rows
+        row = []
+        for c in range(cols + 1):
+            u = c / cols
+            a = a0 + (a1 - a0) * u
+            edge = 1.0 - 0.22 * (0.5 + 0.5 * noise.noise(Vector((u * 3 + off, 0, 1))))
+            side = math.sin(math.pi * u) ** 0.35        # sides shorter than the middle
+            tt = t * edge * (0.75 + 0.25 * side)
+            z = z_top - length * tt
+            rad = radius + peel * tt ** 1.6
+            if tt > 0.8:                                  # roll the lip outwards and up
+                q = (tt - 0.8) / 0.2
+                rad += curl * math.sin(q * math.pi * 0.5)
+                z += curl * 0.8 * q * q
+            rad += 0.01 * noise.noise(Vector((u * 5 + off, tt * 5, 2)))
+            row.append(bm.verts.new((cx + rad * math.cos(a), cy + rad * math.sin(a), z)))
+        grid.append(row)
+    for r in range(rows):
+        for c in range(cols):
+            bm.faces.new((grid[r][c], grid[r + 1][c], grid[r + 1][c + 1], grid[r][c + 1]))
+    bm.normal_update()
+    bmesh.ops.solidify(bm, geom=list(bm.faces), thickness=thickness)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    parts = [geo._link(name, bm, material)]
+    if drip:
+        am = (a0 + a1) * 0.5 + (a1 - a0) * 0.2
+        rb = radius + peel + curl
+        x, y, z = cx + rb * math.cos(am), cy + rb * math.sin(am), z_top - length * 0.92
+        pts = geo.catmull_rom([(x, y, z), (x, y, z - 0.06), (x + 0.005, y, z - 0.12)], 3)
+        rad = [0.022 * (1 - i / (len(pts) - 1)) ** 0.6 + 0.004 for i in range(len(pts))]
+        parts.append(geo.tube(name + "_drip", pts, rad, material, 8))
+    return parts
+
+
+def bark_block(name, center, angle, radius, z_top, z_bot, material, seed):
+    """Chunky carved block on the inner side of the wrist, with a notch and
+    a scroll at its foot (the right-hand wrist piece in the front view)."""
+    rng = random.Random(seed)
+    cx, cy = center
+    d = Vector((math.cos(angle), math.sin(angle), 0))
+    side = Vector((-d.y, d.x, 0))
+    c = Vector((cx, cy, 0)) + d * (radius + 0.04)
+    h = z_top - z_bot
+    # profile in the (outward, z) plane, extruded sideways
+    prof = [(-0.06, z_top), (0.05, z_top - 0.01), (0.07, z_top - h * 0.3), (0.035, z_top - h * 0.38),
+            (0.06, z_top - h * 0.48), (0.09, z_top - h * 0.8), (0.06, z_bot), (-0.04, z_bot + 0.02)]
+    bm = bmesh.new()
+    w = 0.08 + rng.uniform(0, 0.03)
+    loops = [[bm.verts.new(c + d * u + side * s + Vector((0, 0, z))) for u, z in prof] for s in (-w, w)]
+    geo._bridge_loops(bm, loops, False, True)
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+    ob = geo._link(name, bm, material)
+    geo.bevel_all(ob, 0.012, 2, 30)
+    parts = [ob]
+    foot = c + d * 0.07 + Vector((0, 0, z_bot + 0.03))
+    sp = geo.spiral((0.0, 0.0), 0.04, 0.012, 1.0, a0=math.pi, n=24)
+    pts = [tuple(foot + d * x + Vector((0, 0, z))) for x, z in sp]
+    rad = [0.02 * (1 - 0.6 * i / (len(pts) - 1)) for i in range(len(pts))]
+    parts.append(geo.tube(name + "_scroll", pts, rad, material, 8))
+    return parts
+
+
+def wrist_pieces(name, center, radius, z_top, material, seed, outward=0.0):
+    """The wrist pieces as the front view draws them: a big curling flap on
+    the outer side, a carved block on the inner side, shorter flaps between."""
+    o = outward
     parts = []
-    gaps = sorted(rng.uniform(0, 2 * math.pi) for _ in range(flaps))
-    for k in range(flaps):
-        a0 = gaps[k] + 0.12
-        a1 = (gaps[(k + 1) % flaps] + (2 * math.pi if k == flaps - 1 else 0)) - 0.12
-        if a1 - a0 < 0.35:
-            continue
-        length = (z_top - z_bot) * rng.uniform(0.6, 1.25)
-        peel = rng.uniform(0.05, 0.16)
-        cols, rows = 14, 12
-        off = rng.uniform(0, 50)
-        bm = bmesh.new()
-        grid = []
-        for r in range(rows + 1):
-            t = r / rows                         # 0 top -> 1 bottom
-            row = []
-            for c in range(cols + 1):
-                u = c / cols
-                a = a0 + (a1 - a0) * u
-                # ragged bottom edge
-                edge = 1.0 - 0.18 * (0.5 + 0.5 * noise.noise(Vector((u * 4 + off, 0, k))))
-                tt = t * edge
-                z = z_top - length * tt
-                rad = radius + peel * tt ** 1.5 + 0.06 * tt ** 3
-                # curl the lip back up near the bottom
-                if tt > 0.85:
-                    q = (tt - 0.85) / 0.15
-                    rad += 0.03 * q
-                    z += 0.04 * q * q
-                rad += 0.012 * noise.noise(Vector((u * 6 + off, tt * 6, k)))
-                row.append(bm.verts.new((cx + rad * math.cos(a), cy + rad * math.sin(a), z)))
-            grid.append(row)
-        for r in range(rows):
-            for c in range(cols):
-                bm.faces.new((grid[r][c], grid[r + 1][c], grid[r + 1][c + 1], grid[r][c + 1]))
-        bm.normal_update()
-        bmesh.ops.solidify(bm, geom=list(bm.faces), thickness=thickness)
-        bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
-        parts.append(geo._link(f"{name}_{k}", bm, material))
+    parts += bark_flap(name + "_outer", center, radius, o - 0.6, o + 0.6, z_top, 0.32, 0.1, material, seed,
+                       curl=0.06, drip=True)
+    parts += bark_flap(name + "_rear", center, radius, o + 1.7, o + 2.3, z_top - 0.04, 0.2, 0.05, material,
+                       seed + 2, curl=0.03)
+    # the block sits front-inner: mirror of the outer flap across the arm's front axis
+    parts += bark_block(name + "_block", center, math.pi - o, radius, z_top - 0.02, z_top - 0.3, material, seed + 3)
     return parts
 
 

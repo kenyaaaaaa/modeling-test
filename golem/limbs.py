@@ -46,18 +46,15 @@ def ship_wheel(name, origin, axis, radius, mats, spokes=8, teeth=24, depth=0.045
     br, dark = mats["brass"], mats["brass_dark"]
     o = Vector(origin)
     ax, u, v = _frame(axis)
-    parts = [geo.gear(name + "_rim", o, ax, radius, teeth, depth, br, tooth=0.14),
+    parts = [geo.gear(name + "_rim", o, ax, radius, teeth, depth, br, tooth=0.14, hole=0.8),
              geo.torus(name + "_ring", o + ax * depth * 0.5, ax, radius * 0.84, radius * 0.05, br, 48, 8),
              geo.torus(name + "_inner", o + ax * depth * 0.5, ax, radius * 0.34, radius * 0.04, br, 32, 6)]
-    # dark backing disc so the spokes read
-    parts.append(geo.lathe(name + "_back", [(0.0, -depth * 0.4), (radius * 0.8, -depth * 0.4), (radius * 0.8, -depth * 0.2),
-                                            (0.0, -depth * 0.2)], 40, dark, matrix=geo.axis_matrix(o, ax)))
     for k in range(spokes):
         a = 2 * math.pi * k / spokes
         d = u * math.cos(a) + v * math.sin(a)
         parts.append(geo.cylinder(f"{name}_spoke{k}", o + d * radius * 0.3 + ax * depth * 0.3,
-                                  o + d * radius * 0.86 + ax * depth * 0.3, radius * 0.045, br, 8,
-                                  radius_b=radius * 0.03))
+                                  o + d * radius * 0.86 + ax * depth * 0.3, radius * 0.075, br, 10,
+                                  radius_b=radius * 0.05))
     hub = geo.catmull_rom([(radius * 0.22, 0.0), (radius * 0.22, depth * 0.6), (radius * 0.17, depth * 1.0),
                            (radius * 0.1, depth * 1.2), (0.0, depth * 1.25)], 2)
     parts.append(geo.lathe(name + "_hub", hub, 32, br, matrix=geo.axis_matrix(o, ax)))
@@ -125,10 +122,10 @@ def claws(name, cx, cy, z, ring, mats, seed, n=7):
 
 def rock(name, volumes, mats, seed, cobble=0.15, material="rock", spikes=0.12, **_):
     """One solid rock mass with a broken, faceted surface; returns [mass]."""
-    lo, hi = cobble * 0.6, cobble * 1.9
+    lo, hi = cobble, cobble * 2.7
     return [rockform.solid(name, volumes, mats[material], seed, size_range=(lo, hi), spike_p=spikes * 0.6,
-                           relief=0.035, tilt_deg=12, flatten=0.9, crack_p=0.85, crack_w=0.018, crack_d=0.035,
-                           crease_w=0.03, smooth=1, warp=0.04)]
+                           relief=0.05, tilt_deg=18, flatten=0.95, crack_p=0.8, crack_w=0.018, crack_d=0.035,
+                           crease_w=0.03, smooth=0, warp=0.04, ink="all")]
 
 
 def _surface_points(target, dirs_from, rng=None):
@@ -268,11 +265,11 @@ def build(mats, seed=1):
     # arm: one rock trunk from the shoulder to the wrist (the gauntlet crust sits on it)
     arm = (_capsule((1.0, 0.08, 2.32), (1.25, 0.07, 1.95), 0.25, 0.27)
            + [((1.37, 0.07, 1.74), (0.36, 0.32, 0.44), 2.4)]
-           + _capsule((1.36, 0.05, 1.40), (1.28, 0.0, 1.06), 0.25, 0.22)
-           + [((1.28, 0.0, 0.98), (0.27, 0.24, 0.14), 2.2)])
+           + _capsule((1.36, 0.05, 1.40), (1.28, 0.0, 1.08), 0.25, 0.18)
+           + [((1.28, 0.0, 0.99), (0.19, 0.18, 0.11), 2.2)])
     left += rock("rock_arm.L", arm, mats, seed + 21, cobble=0.13)
     # wrist: brown weathered cuff peeling open, fluted pedestal, lantern and drops
-    left += rockform.bark_cuff("cuff.L", (1.28, 0.0), 0.25, 1.06, 0.74, mats["rock_light"], seed + 23)
+    left += rockform.wrist_pieces("cuff.L", (1.28, 0.0), 0.23, 1.10, mats["rock_light"], seed + 23, outward=-0.65)
     left.append(rockform.fluted_drum("wrist_drum.L", (1.27, 0.0), 0.96, 0.86, 0.13, 0.095, mats["rock_light"]))
     left += lantern("lantern.L", 1.27, 0.0, mats)
     for k, x in enumerate((1.03, 1.50)):
@@ -286,7 +283,8 @@ def build(mats, seed=1):
            + _capsule((0.44, -0.06, 0.70), (0.44, -0.10, 0.2), 0.11, 0.13)
            + [((0.6, -0.13, 0.065), (0.34, 0.42, 0.08), 2.2), ((0.48, -0.12, 0.13), (0.17, 0.18, 0.07), 2.0)])
     left += rock("rock_leg.L", leg, mats, seed + 24, cobble=0.12, spikes=0.18)
-    left += rockform.bark_cuff("knee_cuff.L", (0.44, -0.08), 0.21, 0.92, 0.74, mats["rock_light"], seed + 27, flaps=3)
+    left += rockform.bark_flap("knee_cuff.L", (0.44, -0.08), 0.2, -2.3, -0.9, 0.93, 0.2, 0.05, mats["rock_light"],
+                               seed + 27, curl=0.03)
     for k, x in enumerate((0.72, 0.17)):
         bell = geo.catmull_rom([(0.0, 0.66), (0.01, 0.70), (0.03, 0.74), (0.07, 0.77), (0.078, 0.79), (0.05, 0.82),
                                 (0.035, 0.85), (0.042, 0.87), (0.02, 0.9), (0.0, 0.92)], 2)
