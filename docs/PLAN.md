@@ -74,20 +74,39 @@ EGL_PLATFORM=surfaceless .venv/bin/python scripts/build.py --stage case   # 段�
 
 ## 2D 版（カットアウト、2026-10-24）
 
-正面のコンセプト（`reference/concept_front.png`）を部品に切り分け、Godot 4 の 2D で骨組みのように動かす。待機だけ。
+正面のコンセプト（`reference/concept_front.png`）を部品に切り分け、Godot 4 の 2D で動かす。
 
-| 部品 | 動き |
-|---|---|
-| 胴（脚より上すべて） | 腰を支点に呼吸（6 秒で 1 回、上端が約 15 px 上がり、横にも少し膨らむ） |
-| 腕（左右） | 肩を支点に呼吸に少し遅れて外へ 2.5° |
-| 手首の重り 6 個・胴の下の重り | 遅れて揺れる（6〜9°） |
-| 時計の針 | 0.5 秒ごとに 1 目盛り刻む（スクリプト `golem2d.gd`） |
-| 砂時計 | 流れる砂粒、上下の膨らみのきらめき、上の光の明滅 |
-| 浮いた岩のかけら 8 個 | ふわふわ上下（12 px）と回転（14°） |
-| 脚・地面の影 | 動かない |
+**方針（利用者、2026-10-24）**
+- 元の絵の線・配色・輪郭を保つ。部品に分け、隠れていた所は描き足す。
+- ポーズが大きく変わる所だけ差し替え画像を使う。差し替え画像はまず元の絵から作り、無理な所だけ利用者に依頼する。
+- 動きはメイプルストーリー風のコマ送り（ポーズを保持して切り替える。補間しない）。
+- 表示の大きさはメイプルのボス並み（高さ約 350 px）。縮めても線が残るよう、縮める前に線を 1 px 太らせる。
+- 向きは正面。攻撃は ① 地面たたき → ② 時間の魔法 の順に作る。
 
-- 切り分け：`python -m golem2d.cut --out godot2d/parts`（部品の形と支点は `golem2d/parts.py`）。白い紙を透明にし、動く部品の下に隠れていた所は周りの色で塗り足す。胴と脚の境目は 762〜800 px で胴が薄れていくので、呼吸しても継ぎ目が出ない。
-- シーン：`python -m golem2d.scene --project godot2d` で `godot2d/golem2d.tscn`（AnimationPlayer の `idle`、0.25 秒ごとのキー。エディタで直せる）。
-- 確認：`godot --headless --path godot2d --script res://tools/check.gd`。録画は `--write-movie out/f.png --fixed-fps 30 --quit-after 180`。動画は `review/2d/idle.mp4`。
-- 2026-10-24：動きが分かるよう全体に約 2.5 倍に大きくした（利用者）。腕の下の塗り足しも 14 → 22 px に広げた。
-- 0 コマ目は元の絵とほぼ同じ（平均の差 0.8/255。残りは針・浮いたかけら・光）。
+**部品と動き**
+
+| 部品 | 待機（2.4 秒、0.2 秒ごとのポーズ） | 攻撃 ①（1.62 秒） |
+|---|---|---|
+| 胴（脚より上すべて） | 腰を支点に呼吸 2 回 | ためで伸び上がり、当たりで沈んで潰れる |
+| 腕 | 呼吸に 1 コマ遅れて開く | 外へ 30° 振り上げ（差し替え `raise`）、振り下ろし（差し替え `smear`） |
+| 重り 7 個 | 遅れて揺れる | 振り子の計算で揺れ、1/15 秒ごとに保持 |
+| 脚 | 動かない | 当たりで少し潰れる |
+| 浮いたかけら 8 個 | 上下と回転 | 当たりで跳ねる |
+| 効果 | 砂粒・きらめき・光 | 土ぼこり 6 コマ、衝撃波 5 コマ、岩の破片 8 個（線と 3 段の塗りで描いたもの） |
+| 時計の針 | 0.5 秒ごとに刻む（スクリプト） | 同じ |
+
+- 当たりのコマ（0.72 秒）で `_on_attack_hit` → シグナル `attack_hit`。デモ（`main.tscn`）はこれでカメラを揺らす。`attack()` で攻撃し、終わると待機に戻る。
+- 隠れていた所：腕の付け根の下は、胴の岩を境目で折り返して描き、外側に線を引く（胴の輪郭のくぼみの中だけ）。柱の下の飾りの裏の脚は周りから塗る。時計の針の下の文字盤も同じ。
+
+**作り方**
+
+```sh
+python -m golem2d.cut --out godot2d/parts            # 部品・差し替え・効果（--scale 0.36、--boost 1）
+python -m golem2d.scene --project godot2d            # godot2d/golem2d.tscn（idle / attack / RESET）
+godot --headless --path godot2d --import
+godot --headless --path godot2d --script res://tools/check.gd     # トラックの行き先の確認
+xvfb-run godot --rendering-driver opengl3 --path godot2d --write-movie out/f.png --fixed-fps 30 --quit-after 210 -- --auto
+```
+
+- 切る場所と支点：`golem2d/parts.py`。攻撃のポーズ表：`golem2d/attack.py` の `FRAMES`。効果：`golem2d/fx.py`。
+- 録画：`review/2d/idle_attack.mp4`、コマの一覧：`review/2d/attack_frames.png`。

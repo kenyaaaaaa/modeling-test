@@ -1,398 +1,516 @@
 {
+ "scale": 0.36,
  "origin": [
-  765,
-  1000
+  275.4,
+  360.0
  ],
  "size": [
-  1536,
-  1024
+  553,
+  369
  ],
  "parts": {
   "chip_00": {
    "file": "chip_00.png",
    "pos": [
-    896,
-    97
+    322,
+    35
    ],
    "size": [
-    10,
-    15
+    4,
+    6
    ],
    "pivot": [
-    900.6,
-    103.9
+    324.28,
+    37.37
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_01": {
    "file": "chip_01.png",
    "pos": [
-    1150,
-    196
+    413,
+    70
    ],
    "size": [
-    23,
-    28
+    9,
+    11
    ],
    "pivot": [
-    1160.2,
-    210.3
+    417.62,
+    75.72
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_02": {
    "file": "chip_02.png",
    "pos": [
-    1145,
-    237
+    412,
+    85
    ],
    "size": [
-    11,
-    11
+    4,
+    4
    ],
    "pivot": [
-    1150.2,
-    241.9
+    414.09,
+    87.06
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_03": {
    "file": "chip_03.png",
    "pos": [
-    265,
-    551
+    95,
+    198
    ],
    "size": [
-    20,
-    15
+    8,
+    6
    ],
    "pivot": [
-    274.9,
-    557.7
+    98.97,
+    200.78
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_04": {
    "file": "chip_04.png",
    "pos": [
-    295,
-    603
+    106,
+    217
    ],
    "size": [
-    12,
-    24
+    5,
+    9
    ],
    "pivot": [
-    301.0,
-    614.6
+    108.37,
+    221.29
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_05": {
    "file": "chip_05.png",
    "pos": [
-    311,
-    661
+    112,
+    238
    ],
    "size": [
-    15,
-    16
+    5,
+    6
    ],
    "pivot": [
-    318.2,
-    668.9
+    114.59,
+    240.82
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_06": {
    "file": "chip_06.png",
    "pos": [
-    1144,
-    895
+    412,
+    322
    ],
    "size": [
-    16,
-    16
+    6,
+    6
    ],
    "pivot": [
-    1151.9,
-    902.8
+    414.63,
+    324.97
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "chip_07": {
    "file": "chip_07.png",
    "pos": [
-    1138,
-    916
+    410,
+    330
    ],
    "size": [
-    14,
-    12
+    5,
+    4
    ],
    "pivot": [
-    1144.0,
-    921.7
+    411.99,
+    331.86
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "weight_l1": {
    "file": "weight_l1.png",
    "pos": [
-    375,
-    821
+    135,
+    295
    ],
    "size": [
-    43,
-    71
+    16,
+    26
    ],
    "pivot": [
-    395.0,
-    821.0
+    142.2,
+    295.56
    ],
-   "parent": "arm_l"
+   "parent": "arm_l",
+   "swap_of": null
   },
   "weight_l2": {
    "file": "weight_l2.png",
    "pos": [
-    415,
-    879
+    149,
+    316
    ],
    "size": [
-    51,
-    99
+    19,
+    36
    ],
    "pivot": [
-    440.0,
-    879.0
+    158.4,
+    316.44
    ],
-   "parent": "arm_l"
+   "parent": "arm_l",
+   "swap_of": null
   },
   "weight_l3": {
    "file": "weight_l3.png",
    "pos": [
-    479,
-    838
+    172,
+    301
    ],
    "size": [
-    27,
-    57
+    11,
+    21
    ],
    "pivot": [
-    496.0,
-    838.0
+    178.56,
+    301.68
    ],
-   "parent": "arm_l"
+   "parent": "arm_l",
+   "swap_of": null
   },
   "weight_r1": {
    "file": "weight_r1.png",
    "pos": [
-    1029,
-    840
+    370,
+    302
    ],
    "size": [
-    38,
-    55
+    10,
+    20
    ],
    "pivot": [
-    1047.0,
-    840.0
+    376.92,
+    302.4
    ],
-   "parent": "arm_r"
+   "parent": "arm_r",
+   "swap_of": null
   },
   "weight_r2": {
    "file": "weight_r2.png",
    "pos": [
-    1074,
-    879
+    386,
+    316
    ],
    "size": [
-    47,
-    100
+    18,
+    36
    ],
    "pivot": [
-    1103.0,
-    879.0
+    397.08,
+    316.44
    ],
-   "parent": "arm_r"
+   "parent": "arm_r",
+   "swap_of": null
   },
   "weight_r3": {
    "file": "weight_r3.png",
    "pos": [
-    1133,
-    815
+    407,
+    293
    ],
    "size": [
-    27,
-    76
+    11,
+    28
    ],
    "pivot": [
-    1150.0,
-    815.0
+    414.0,
+    293.4
    ],
-   "parent": "arm_r"
+   "parent": "arm_r",
+   "swap_of": null
   },
   "weight_c": {
    "file": "weight_c.png",
    "pos": [
-    742,
-    778
+    267,
+    280
    ],
    "size": [
-    48,
-    84
+    18,
+    30
    ],
    "pivot": [
-    765.0,
-    778.0
+    275.4,
+    280.08
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "arm_l": {
    "file": "arm_l.png",
    "pos": [
-    265,
-    401
+    103,
+    144
    ],
    "size": [
-    266,
-    481
+    88,
+    173
    ],
    "pivot": [
-    430.0,
-    445.0
+    154.8,
+    160.2
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "arm_r": {
    "file": "arm_r.png",
    "pos": [
-    1003,
-    400
+    361,
+    144
    ],
    "size": [
-    247,
-    586
+    89,
+    211
    ],
    "pivot": [
-    1100.0,
-    445.0
+    396.0,
+    160.2
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "hand_hour": {
    "file": "hand_hour.png",
    "pos": [
-    756,
-    152
+    272,
+    54
    ],
    "size": [
-    21,
-    33
+    8,
+    13
    ],
    "pivot": [
-    766.0,
-    190.0
+    275.76,
+    68.4
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "hand_minute": {
    "file": "hand_minute.png",
    "pos": [
-    773,
-    162
+    278,
+    58
    ],
    "size": [
-    33,
-    33
+    13,
+    13
    ],
    "pivot": [
-    766.0,
-    190.0
+    275.76,
+    68.4
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "hub": {
    "file": "hub.png",
    "pos": [
-    757,
-    181
+    272,
+    65
    ],
    "size": [
-    19,
-    19
+    8,
+    7
    ],
    "pivot": [
-    766.0,
-    190.0
+    275.76,
+    68.4
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
   },
   "legs": {
    "file": "legs.png",
    "pos": [
-    323,
-    750
+    116,
+    264
    ],
    "size": [
-    894,
-    270
+    322,
+    104
    ],
    "pivot": [
-    765.0,
-    1000.0
+    275.4,
+    360.0
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "body": {
    "file": "body.png",
    "pos": [
-    308,
-    17
+    111,
+    6
    ],
    "size": [
-    928,
-    849
+    332,
+    306
    ],
    "pivot": [
-    765.0,
-    790.0
+    275.4,
+    284.4
    ],
-   "parent": null
+   "parent": null,
+   "swap_of": null
   },
   "glow": {
    "file": "glow.png",
    "pos": [
-    684,
-    314
+    246,
+    113
    ],
    "size": [
-    163,
-    90
+    59,
+    33
    ],
    "pivot": [
-    765.0,
-    790.0
+    275.4,
+    284.4
    ],
-   "parent": "body"
+   "parent": "body",
+   "swap_of": null
+  },
+  "arm_l_raise": {
+   "file": "arm_l_raise.png",
+   "pos": [
+    101,
+    145
+   ],
+   "size": [
+    92,
+    157
+   ],
+   "pivot": [
+    154.8,
+    160.2
+   ],
+   "parent": "body",
+   "swap_of": "arm_l"
+  },
+  "arm_l_smear": {
+   "file": "arm_l_smear.png",
+   "pos": [
+    70,
+    129
+   ],
+   "size": [
+    121,
+    206
+   ],
+   "pivot": [
+    154.8,
+    160.2
+   ],
+   "parent": "body",
+   "swap_of": "arm_l"
+  },
+  "arm_r_raise": {
+   "file": "arm_r_raise.png",
+   "pos": [
+    360,
+    145
+   ],
+   "size": [
+    92,
+    191
+   ],
+   "pivot": [
+    396.0,
+    160.2
+   ],
+   "parent": "body",
+   "swap_of": "arm_r"
+  },
+  "arm_r_smear": {
+   "file": "arm_r_smear.png",
+   "pos": [
+    361,
+    129
+   ],
+   "size": [
+    122,
+    223
+   ],
+   "pivot": [
+    396.0,
+    160.2
+   ],
+   "parent": "body",
+   "swap_of": "arm_r"
   }
  },
  "stream": [
-  762,
-  470,
-  771,
-  612
+  274.32,
+  169.2,
+  277.56,
+  220.32
  ],
  "top_sand": [
-  690,
-  315,
-  840,
-  400
+  248.4,
+  113.4,
+  302.4,
+  144.0
  ],
  "bottom_sand": [
-  700,
-  500,
-  830,
-  640
- ]
+  252.0,
+  180.0,
+  298.8,
+  230.4
+ ],
+ "fx": {
+  "fx_dust": {
+   "file": "fx_dust.png",
+   "frames": 6,
+   "cell": [
+    120,
+    70
+   ]
+  },
+  "fx_wave": {
+   "file": "fx_wave.png",
+   "frames": 5,
+   "cell": [
+    460,
+    90
+   ]
+  },
+  "fx_shard": {
+   "file": "fx_shard.png",
+   "frames": 3,
+   "cell": [
+    12,
+    12
+   ]
+  }
+ }
 }

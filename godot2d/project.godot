@@ -9,12 +9,12 @@ config/features=PackedStringArray("4.4")
 
 [display]
 
-window/size/viewport_width=1536
-window/size/viewport_height=1024
+window/size/viewport_width=960
+window/size/viewport_height=540
 window/stretch/mode="canvas_items"
 
 [rendering]
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
-environment/defaults/default_clear_color=Color(1, 1, 1, 1)
+environment/defaults/default_clear_color=Color(0.86, 0.92, 0.97, 1)

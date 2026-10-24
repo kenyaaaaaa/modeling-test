@@ -1,6 +1,9 @@
 extends Node2D
-## Clock golem cut out of the front concept. The AnimationPlayer runs the
-## 6 s idle loop (breath, arms, weights, chips, glow); the clock ticks here.
+## Clock golem cut out of the front concept, animated MapleStory-style (held
+## poses). The AnimationPlayer runs idle and attack; the clock ticks here.
+
+## Emitted on the frame the arms hit the ground (deal damage, shake the camera).
+signal attack_hit
 
 ## Where the hands point in the picture (degrees clockwise from 12).
 const MINUTE_DRAWN := 57.0
@@ -12,9 +15,34 @@ const HOUR_DRAWN := 4.75
 ## Time on the dial at the start, in minutes after 12 (9.5 = as drawn).
 @export var start_minutes := 9.5
 
+@onready var _player: AnimationPlayer = $AnimationPlayer
 @onready var _minute: Node2D = $Body/HandMinute
 @onready var _hour: Node2D = $Body/HandHour
 var _time := 0.0
+
+
+func _ready() -> void:
+	_player.animation_finished.connect(_on_animation_finished)
+
+
+## Ground slam. Does nothing if one is already under way.
+func attack() -> void:
+	if _player.current_animation != "attack":
+		_player.play("attack")
+
+
+func is_attacking() -> bool:
+	return _player.current_animation == "attack"
+
+
+func _on_animation_finished(anim: StringName) -> void:
+	if anim == &"attack":
+		_player.play("idle")
+
+
+## Called by the attack animation on the hit frame.
+func _on_attack_hit() -> void:
+	attack_hit.emit()
 
 
 func _process(delta: float) -> void:

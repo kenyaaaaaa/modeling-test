@@ -1,24 +1,30 @@
 extends SceneTree
 ## godot --headless --path godot2d --script res://tools/check.gd
-## Loads the scene and reports its parts and animations.
+## Loads the scene and reports its parts and animations; fails if a track
+## points at a node that isn't there.
 
 func _init() -> void:
 	var scene := (load("res://golem2d.tscn") as PackedScene).instantiate()
 	root.add_child(scene)
 	await process_frame
 	var player := scene.get_node("AnimationPlayer") as AnimationPlayer
-	var idle := player.get_animation("idle")
 	var missing := []
-	for i in idle.get_track_count():
-		var path := idle.track_get_path(i)
-		if scene.get_node_or_null(NodePath(path.get_concatenated_names())) == null:
-			missing.append(str(path))
+	var tracks := {}
+	for anim_name in player.get_animation_list():
+		var anim := player.get_animation(anim_name)
+		tracks[anim_name] = anim.get_track_count()
+		for i in anim.get_track_count():
+			var path := anim.track_get_path(i)
+			var target := scene.get_node_or_null(NodePath(path.get_concatenated_names()))
+			if target == null:
+				missing.append("%s: %s" % [anim_name, path])
+			elif anim.track_get_type(i) == Animation.TYPE_VALUE and not (path.get_concatenated_subnames() in target):
+				missing.append("%s: %s (no property)" % [anim_name, path])
 	var report := {
 		"sprites": scene.find_children("*", "Sprite2D", true, false).size(),
 		"particles": scene.find_children("*", "CPUParticles2D", true, false).size(),
-		"animations": player.get_animation_list(),
-		"idle_length": idle.length,
-		"tracks": idle.get_track_count(),
+		"tracks": tracks,
+		"attack_length": player.get_animation("attack").length,
 		"missing_tracks": missing,
 		"playing": player.current_animation,
 	}

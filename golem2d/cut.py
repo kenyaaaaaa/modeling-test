@@ -1,9 +1,12 @@
 """Cut the front concept into layered parts for 2D cutout animation.
 
-    python -m golem2d.cut --out godot2d/parts
+    python -m golem2d.cut --out godot2d/parts --scale 0.36
 
 Writes one PNG per part (cropped to its pixels) and parts.json with where
-each one sits, the point it turns around and the part it rides on.
+each one sits, the point it turns around and the part it rides on. Parts are
+cut at the size of the concept and shrunk at the end; before that the ink
+lines are thickened so they still read at boss size (MapleStory-like).
+Also writes the swap images for poses the cut parts can't reach by turning.
 """
 import argparse
 import json
@@ -15,8 +18,11 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 from . import parts as P
+from .parts import INK
+from . import fx, swaps
 
 H_INK = 60  # outline darkness used to un-blend anti-aliased edges from the white paper
+INK_LUM = 55  # darker than this counts as an ink line
 
 
 def shape_mask(size, part, key="poly"):
@@ -69,10 +75,46 @@ def inpaint(rgb, mask, radius=5):
     return cv2.inpaint(rgb.clip(0, 255).astype(np.uint8), m, radius, cv2.INPAINT_TELEA).astype(np.float32)
 
 
-def save(layer_rgb, layer_a, path):
-    ys, xs = np.nonzero(layer_a > 0.004)
+def boost_lines(rgb, radius):
+    """Thicken the dark ink lines by `radius` px (each pixel near ink takes the darkest
+    colour around it), so they survive shrinking."""
+    if radius <= 0:
+        return rgb
+    lum = rgb.astype(np.float32) @ np.array([0.299, 0.587, 0.114], np.float32)
+    k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2 * radius + 1, 2 * radius + 1))
+    thick = cv2.dilate((lum < INK_LUM).astype(np.uint8), k) > 0
+    return np.where(thick[..., None], cv2.erode(rgb, k), rgb)
+
+
+def mirror_fill(rgb, rest, hole):
+    """Paint `hole` with the parent's own rock: each pixel takes the colour mirrored
+    across the nearest edge of `rest`, so cracks and lines carry on into it."""
+    _, (iy, ix) = ndimage.distance_transform_edt(~rest, return_indices=True)
+    yy, xx = np.nonzero(hole)
+    my = np.clip(2 * iy[yy, xx] - yy, 0, rgb.shape[0] - 1)
+    mx = np.clip(2 * ix[yy, xx] - xx, 0, rgb.shape[1] - 1)
+    ok = rest[my, mx]
+    out = rgb.copy()
+    out[yy, xx] = np.where(ok[:, None], rgb[my, mx], rgb[iy[yy, xx], ix[yy, xx]])
+    return out
+
+
+def shrink(rgb, a, scale):
+    """Shrink a whole-canvas layer (premultiplied, area filter)."""
+    if scale == 1:
+        return rgb, a
+    pre = np.dstack([rgb * a[..., None], a])
+    small = cv2.resize(pre, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
+    sa = small[..., 3]
+    srgb = np.where(sa[..., None] > 1e-4, small[..., :3] / np.maximum(sa, 1e-4)[..., None], 0)
+    return srgb, sa
+
+
+def save(layer_rgb, layer_a, path, scale):
+    rgb, a = shrink(layer_rgb.astype(np.float32), layer_a.astype(np.float32), scale)
+    ys, xs = np.nonzero(a > 0.004)
     x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
-    rgba = np.dstack([layer_rgb[y0:y1, x0:x1], layer_a[y0:y1, x0:x1, None] * 255])
+    rgba = np.dstack([rgb[y0:y1, x0:x1], a[y0:y1, x0:x1, None] * 255])
     Image.fromarray(rgba.round().clip(0, 255).astype(np.uint8), "RGBA").save(path, optimize=True)
     return [int(x0), int(y0)], [int(x1 - x0), int(y1 - y0)]
 
@@ -80,12 +122,14 @@ def save(layer_rgb, layer_a, path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="godot2d/parts")
+    ap.add_argument("--scale", type=float, default=0.36, help="output size (0.36: about 350 px tall)")
+    ap.add_argument("--boost", type=int, default=1, help="px to thicken ink lines by before shrinking")
     ap.add_argument("--debug", help="write a colour map of the parts here")
     args = ap.parse_args()
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
 
-    src = np.asarray(Image.open(P.SRC).convert("RGB"))
+    src = boost_lines(np.asarray(Image.open(P.SRC).convert("RGB")), args.boost)
     h, w = src.shape[:2]
     rgb, alpha = matte(src)
     fg = alpha > 0
@@ -153,8 +197,19 @@ def main():
             continue
         pl = layers[par]
         rest = pl["a"] > 0.5
-        hole = layer["mask"] if r >= 99 else layer["mask"] & ndimage.binary_dilation(rest, iterations=r)
-        pl["rgb"] = np.where(hole[..., None], inpaint(pl["rgb"], hole, 5), pl["rgb"])
+        if r >= 99:  # wholly inside the parent (clock hands on the dial)
+            hole = layer["mask"]
+            pl["rgb"] = np.where(hole[..., None], inpaint(pl["rgb"], hole, 5), pl["rgb"])
+        else:
+            # carry the parent's rock on into the band and close it with an outline,
+            # so it reads as rock when the part swings away
+            # only where the parent's outline dips in under the part, not past its outline
+            k = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (4 * r + 1, 4 * r + 1))
+            closed = cv2.morphologyEx(rest.astype(np.uint8), cv2.MORPH_CLOSE, k) > 0
+            hole = layer["mask"] & ndimage.binary_dilation(rest, iterations=r) & closed
+            edge = hole & ~ndimage.binary_erosion(hole | rest, iterations=3)
+            pl["rgb"] = mirror_fill(pl["rgb"], rest, hole)
+            pl["rgb"][edge] = INK
         pl["a"] = np.where(hole, 1.0, pl["a"])
 
     # hourglass glow: the bright part of the upper bulb, for an additive pulse
@@ -165,12 +220,23 @@ def main():
     glow_rgb = np.broadcast_to(np.array([255, 236, 150], np.float32), (h, w, 3))
     layers["glow"] = {"rgb": glow_rgb, "a": glow_a, "pivot": P.BODY_PIVOT, "parent": "body"}
 
-    meta = {"origin": P.ORIGIN, "size": [w, h], "parts": {}, "stream": P.STREAM,
-            "top_sand": P.TOP_SAND, "bottom_sand": P.BOTTOM_SAND}
+    # swap images: the arms in poses turning alone can't give
+    for side in ("l", "r"):
+        arm = layers[f"arm_{side}"]
+        for kind in P.SWAPS:
+            rgb_s, a_s = swaps.arm_swap(arm["rgb"], arm["a"], arm["pivot"], kind, 1 if side == "l" else -1)
+            layers[f"arm_{side}_{kind}"] = {"rgb": rgb_s, "a": a_s, "pivot": arm["pivot"], "parent": "body",
+                                            "swap_of": f"arm_{side}"}
+
+    S = args.scale
+    sc = lambda v: [round(x * S, 2) for x in v]
+    meta = {"scale": S, "origin": sc(P.ORIGIN), "size": [round(w * S), round(h * S)], "parts": {},
+            "stream": sc(P.STREAM), "top_sand": sc(P.TOP_SAND), "bottom_sand": sc(P.BOTTOM_SAND)}
     for name, layer in layers.items():
-        pos, size = save(layer["rgb"], layer["a"], out / f"{name}.png")
-        meta["parts"][name] = {"file": f"{name}.png", "pos": pos, "size": size,
-                               "pivot": [round(float(v), 1) for v in layer["pivot"]], "parent": layer["parent"]}
+        pos, size = save(layer["rgb"], layer["a"], out / f"{name}.png", S)
+        meta["parts"][name] = {"file": f"{name}.png", "pos": pos, "size": size, "pivot": sc(layer["pivot"]),
+                               "parent": layer["parent"], "swap_of": layer.get("swap_of")}
+    meta["fx"] = fx.make_all(out, S)
     (out / "parts.json").write_text(json.dumps(meta, indent=1))
     print(f"{len(layers)} parts ({len(chips)} chips) -> {out}")
 
@@ -178,7 +244,7 @@ def main():
         rng = np.random.default_rng(3)
         dbg = np.full((h, w, 3), 255.0)
         for name, layer in layers.items():
-            if name == "glow":
+            if name == "glow" or layer.get("swap_of"):
                 continue
             col = rng.integers(40, 230, 3)
             a = (layer["a"] > 0.5)[..., None]
