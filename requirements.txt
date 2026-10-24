@@ -3,3 +3,4 @@ numpy
 pillow
 pyyaml
 scipy
+opencv-python-headless

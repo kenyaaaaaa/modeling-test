@@ -6,3 +6,5 @@ godot/golem/*.glb
 godot/golem/*.png
 godot/.godot/
 godot/**/*.import
+godot2d/.godot/
+godot2d/**/*.import

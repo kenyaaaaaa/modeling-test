@@ -71,3 +71,22 @@ EGL_PLATFORM=surfaceless .venv/bin/python scripts/build.py --stage case   # 段�
 ```
 
 `out/golem_<段階>.blend` ができ、`review/<段階>/` に比較画像（`compare_*`）、拡大の比較（`detail_*`）、斜めの画像（`three_quarter*`）、`report.json`（IoU、三角形の数を予算のまとまりごとに）が出る。IoU が目標より低いと終了コード 1。
+
+## 2D 版（カットアウト、2026-10-24）
+
+正面のコンセプト（`reference/concept_front.png`）を部品に切り分け、Godot 4 の 2D で骨組みのように動かす。待機だけ。
+
+| 部品 | 動き |
+|---|---|
+| 胴（脚より上すべて） | 腰を支点に呼吸（6 秒で 1 回、上端が約 6 px 上がる） |
+| 腕（左右） | 肩を支点に呼吸に少し遅れて外へ 0.9° |
+| 手首の重り 6 個・胴の下の重り | 遅れて揺れる（3〜4°） |
+| 時計の針 | 0.5 秒ごとに 1 目盛り刻む（スクリプト `golem2d.gd`） |
+| 砂時計 | 流れる砂粒、上下の膨らみのきらめき、上の光の明滅 |
+| 浮いた岩のかけら 8 個 | ふわふわ上下と回転 |
+| 脚・地面の影 | 動かない |
+
+- 切り分け：`python -m golem2d.cut --out godot2d/parts`（部品の形と支点は `golem2d/parts.py`）。白い紙を透明にし、動く部品の下に隠れていた所は周りの色で塗り足す。胴と脚の境目は 762〜800 px で胴が薄れていくので、呼吸しても継ぎ目が出ない。
+- シーン：`python -m golem2d.scene --project godot2d` で `godot2d/golem2d.tscn`（AnimationPlayer の `idle`、0.25 秒ごとのキー。エディタで直せる）。
+- 確認：`godot --headless --path godot2d --script res://tools/check.gd`。録画は `--write-movie out/f.png --fixed-fps 30 --quit-after 180`。動画は `review/2d/idle.mp4`。
+- 0 コマ目は元の絵とほぼ同じ（平均の差 0.8/255。残りは針・浮いたかけら・光）。

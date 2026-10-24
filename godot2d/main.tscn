@@ -1,0 +1,8 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="PackedScene" path="res://golem2d.tscn" id="golem"]
+
+[node name="Main" type="Node2D"]
+
+[node name="Golem2D" parent="." instance=ExtResource("golem")]
+position = Vector2(765, 1000)

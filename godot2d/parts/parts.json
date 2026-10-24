@@ -1,0 +1,398 @@
+{
+ "origin": [
+  765,
+  1000
+ ],
+ "size": [
+  1536,
+  1024
+ ],
+ "parts": {
+  "chip_00": {
+   "file": "chip_00.png",
+   "pos": [
+    896,
+    97
+   ],
+   "size": [
+    10,
+    15
+   ],
+   "pivot": [
+    900.6,
+    103.9
+   ],
+   "parent": null
+  },
+  "chip_01": {
+   "file": "chip_01.png",
+   "pos": [
+    1150,
+    196
+   ],
+   "size": [
+    23,
+    28
+   ],
+   "pivot": [
+    1160.2,
+    210.3
+   ],
+   "parent": null
+  },
+  "chip_02": {
+   "file": "chip_02.png",
+   "pos": [
+    1145,
+    237
+   ],
+   "size": [
+    11,
+    11
+   ],
+   "pivot": [
+    1150.2,
+    241.9
+   ],
+   "parent": null
+  },
+  "chip_03": {
+   "file": "chip_03.png",
+   "pos": [
+    265,
+    551
+   ],
+   "size": [
+    20,
+    15
+   ],
+   "pivot": [
+    274.9,
+    557.7
+   ],
+   "parent": null
+  },
+  "chip_04": {
+   "file": "chip_04.png",
+   "pos": [
+    295,
+    603
+   ],
+   "size": [
+    12,
+    24
+   ],
+   "pivot": [
+    301.0,
+    614.6
+   ],
+   "parent": null
+  },
+  "chip_05": {
+   "file": "chip_05.png",
+   "pos": [
+    311,
+    661
+   ],
+   "size": [
+    15,
+    16
+   ],
+   "pivot": [
+    318.2,
+    668.9
+   ],
+   "parent": null
+  },
+  "chip_06": {
+   "file": "chip_06.png",
+   "pos": [
+    1144,
+    895
+   ],
+   "size": [
+    16,
+    16
+   ],
+   "pivot": [
+    1151.9,
+    902.8
+   ],
+   "parent": null
+  },
+  "chip_07": {
+   "file": "chip_07.png",
+   "pos": [
+    1138,
+    916
+   ],
+   "size": [
+    14,
+    12
+   ],
+   "pivot": [
+    1144.0,
+    921.7
+   ],
+   "parent": null
+  },
+  "weight_l1": {
+   "file": "weight_l1.png",
+   "pos": [
+    375,
+    821
+   ],
+   "size": [
+    43,
+    71
+   ],
+   "pivot": [
+    395.0,
+    821.0
+   ],
+   "parent": "arm_l"
+  },
+  "weight_l2": {
+   "file": "weight_l2.png",
+   "pos": [
+    415,
+    879
+   ],
+   "size": [
+    51,
+    99
+   ],
+   "pivot": [
+    440.0,
+    879.0
+   ],
+   "parent": "arm_l"
+  },
+  "weight_l3": {
+   "file": "weight_l3.png",
+   "pos": [
+    479,
+    838
+   ],
+   "size": [
+    27,
+    57
+   ],
+   "pivot": [
+    496.0,
+    838.0
+   ],
+   "parent": "arm_l"
+  },
+  "weight_r1": {
+   "file": "weight_r1.png",
+   "pos": [
+    1029,
+    840
+   ],
+   "size": [
+    38,
+    55
+   ],
+   "pivot": [
+    1047.0,
+    840.0
+   ],
+   "parent": "arm_r"
+  },
+  "weight_r2": {
+   "file": "weight_r2.png",
+   "pos": [
+    1074,
+    879
+   ],
+   "size": [
+    47,
+    100
+   ],
+   "pivot": [
+    1103.0,
+    879.0
+   ],
+   "parent": "arm_r"
+  },
+  "weight_r3": {
+   "file": "weight_r3.png",
+   "pos": [
+    1133,
+    815
+   ],
+   "size": [
+    27,
+    76
+   ],
+   "pivot": [
+    1150.0,
+    815.0
+   ],
+   "parent": "arm_r"
+  },
+  "weight_c": {
+   "file": "weight_c.png",
+   "pos": [
+    742,
+    778
+   ],
+   "size": [
+    48,
+    84
+   ],
+   "pivot": [
+    765.0,
+    778.0
+   ],
+   "parent": "body"
+  },
+  "arm_l": {
+   "file": "arm_l.png",
+   "pos": [
+    265,
+    401
+   ],
+   "size": [
+    266,
+    481
+   ],
+   "pivot": [
+    430.0,
+    445.0
+   ],
+   "parent": "body"
+  },
+  "arm_r": {
+   "file": "arm_r.png",
+   "pos": [
+    1003,
+    400
+   ],
+   "size": [
+    247,
+    586
+   ],
+   "pivot": [
+    1100.0,
+    445.0
+   ],
+   "parent": "body"
+  },
+  "hand_hour": {
+   "file": "hand_hour.png",
+   "pos": [
+    756,
+    152
+   ],
+   "size": [
+    21,
+    33
+   ],
+   "pivot": [
+    766.0,
+    190.0
+   ],
+   "parent": "body"
+  },
+  "hand_minute": {
+   "file": "hand_minute.png",
+   "pos": [
+    773,
+    162
+   ],
+   "size": [
+    33,
+    33
+   ],
+   "pivot": [
+    766.0,
+    190.0
+   ],
+   "parent": "body"
+  },
+  "hub": {
+   "file": "hub.png",
+   "pos": [
+    757,
+    181
+   ],
+   "size": [
+    19,
+    19
+   ],
+   "pivot": [
+    766.0,
+    190.0
+   ],
+   "parent": "body"
+  },
+  "legs": {
+   "file": "legs.png",
+   "pos": [
+    323,
+    750
+   ],
+   "size": [
+    894,
+    270
+   ],
+   "pivot": [
+    765.0,
+    1000.0
+   ],
+   "parent": null
+  },
+  "body": {
+   "file": "body.png",
+   "pos": [
+    308,
+    17
+   ],
+   "size": [
+    925,
+    849
+   ],
+   "pivot": [
+    765.0,
+    790.0
+   ],
+   "parent": null
+  },
+  "glow": {
+   "file": "glow.png",
+   "pos": [
+    684,
+    314
+   ],
+   "size": [
+    163,
+    90
+   ],
+   "pivot": [
+    765.0,
+    790.0
+   ],
+   "parent": "body"
+  }
+ },
+ "stream": [
+  762,
+  470,
+  771,
+  612
+ ],
+ "top_sand": [
+  690,
+  315,
+  840,
+  400
+ ],
+ "bottom_sand": [
+  700,
+  500,
+  830,
+  640
+ ]
+}
