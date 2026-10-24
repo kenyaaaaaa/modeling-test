@@ -36,15 +36,15 @@ def breath(t):
 
 def tracks(parts):
     tr = {}
-    tr["Body:scale"] = lambda t: ("v2", 1 + 0.003 * breath(t), 1 + 0.008 * breath(t))
+    tr["Body:scale"] = lambda t: ("v2", 1 + 0.008 * breath(t), 1 + 0.02 * breath(t))
     for side, sign in (("l", 1), ("r", -1)):
         arm = f"Body/Arm{side.upper()}"
-        tr[f"{arm}:rotation"] = lambda t, s=sign: ("f", s * deg(0.9) * breath(t - 0.35))
+        tr[f"{arm}:rotation"] = lambda t, s=sign: ("f", s * deg(2.5) * breath(t - 0.35))
         for i, phase in ((1, 0.9), (2, 1.4), (3, 1.1)):
             path = f"{arm}/Weight{side.upper()}{i}:rotation"
             tr[path] = lambda t, s=sign, p=phase, i=i: (
-                "f", s * (deg(3.0 if i == 2 else 4.0) * math.sin(W * t - p) + deg(0.8) * math.sin(2 * W * t - p)))
-    tr["Body/WeightC:rotation"] = lambda t: ("f", deg(2.5) * math.sin(W * t - 0.6))
+                "f", s * (deg(7.0 if i == 2 else 9.0) * math.sin(W * t - p) + deg(2.0) * math.sin(2 * W * t - p)))
+    tr["Body/WeightC:rotation"] = lambda t: ("f", deg(6.0) * math.sin(W * t - 0.6))
     tr["Body/Glow:modulate"] = lambda t: ("col", 0.05 + 0.25 * (0.5 - 0.5 * math.cos(2 * W * t)))
     chips = sorted(n for n in parts if n.startswith("chip_"))
     for k, name in enumerate(chips):
@@ -53,8 +53,8 @@ def tracks(parts):
         phase = k * 2.3
         freq = 2 if k % 3 == 0 else 1
         tr[f"{node}:position"] = lambda t, b=base, p=phase, f=freq: (
-            "v2", b[0], b[1] - 5 * math.sin(f * W * t + p))
-        tr[f"{node}:rotation"] = lambda t, p=phase: ("f", deg(6) * math.sin(W * t + p + 1))
+            "v2", b[0], b[1] - 12 * math.sin(f * W * t + p))
+        tr[f"{node}:rotation"] = lambda t, p=phase: ("f", deg(14) * math.sin(W * t + p + 1))
     return tr
 
 

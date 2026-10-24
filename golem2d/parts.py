@@ -22,10 +22,10 @@ PARTS = [
     {"name": "weight_c", "parent": "body", "fill": 10,
      "poly": [(745, 778), (785, 778), (790, 800), (782, 865), (748, 865), (740, 800)], "pivot": (765, 778)},
     # arms hang from the shoulder rock; the cut runs along the top of the upper-arm stone
-    {"name": "arm_l", "parent": "body", "fill": 14, "pivot": (430, 445),
+    {"name": "arm_l", "parent": "body", "fill": 22, "pivot": (430, 445),
      "poly": [(262, 450), (300, 418), (332, 400), (366, 402), (384, 424), (404, 446), (440, 452),
               (470, 458), (500, 464), (522, 474), (548, 482), (548, 985), (262, 985)]},
-    {"name": "arm_r", "parent": "body", "fill": 14, "pivot": (1100, 445),
+    {"name": "arm_r", "parent": "body", "fill": 22, "pivot": (1100, 445),
      "poly": [(1268, 450), (1230, 418), (1198, 400), (1164, 402), (1146, 424), (1126, 446), (1090, 452),
               (1060, 458), (1030, 464), (1008, 474), (982, 482), (982, 985), (1268, 985)]},
     # clock hands (the hub stays on top of them)
